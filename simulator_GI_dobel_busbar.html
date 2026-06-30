@@ -49,7 +49,7 @@
 <body>
 <div class="wrap">
   <h1>Simulator PMT &amp; PMS — gardu induk double busbar 150/20 kV</h1>
-  <p class="sub">4 bay penghantar, 2 bay trafo, 1 bay kopel, 1 bay kapasitor. Klik simbol PMS (belah ketupat) atau PMT (kotak) untuk mengoperasikan, lengkap dengan interlock dan logger switching.</p>
+  <p class="sub">2 bay pembangkit, 2 bay penghantar, 2 bay trafo, 1 bay kopel, 1 bay kapasitor. Klik simbol PMS (belah ketupat) atau PMT (kotak) untuk mengoperasikan, lengkap dengan interlock dan logger switching.</p>
 
   <div class="panel">
     <div class="panel-head">
@@ -61,9 +61,9 @@
         <marker id="arR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
       </defs>
       <line id="busline1" x1="30" y1="40" x2="660" y2="40" stroke-width="4"/>
-      <text x="36" y="28" font-size="12" fill="var(--text-secondary)" class="mono">BUS-1 (150 kV)</text>
+      <text x="36" y="28" font-size="12" fill="var(--text-secondary)" class="mono">BUS-A (150 kV)</text>
       <line id="busline2" x1="30" y1="68" x2="660" y2="68" stroke-width="4"/>
-      <text x="36" y="56" font-size="12" fill="var(--text-secondary)" class="mono">BUS-2 (150 kV)</text>
+      <text x="36" y="56" font-size="12" fill="var(--text-secondary)" class="mono">BUS-B (150 kV)</text>
       <g id="bays"></g>
     </svg>
   </div>
@@ -343,7 +343,7 @@ function attemptTogglePms(b, side){
   var key='pms'+side, otherSide=(side===1?2:1), otherKey='pms'+otherSide;
   var willClose = b[key]==='open';
   if(willClose && b.id!==kopel.id && b[otherKey]==='closed' && !isBusesParalleled()){
-    log('PMS B'+side+' '+b.id+' ditolak: PMS B'+otherSide+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan Bus-1 dan Bus-2 langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
+    log('PMS B'+side+' '+b.id+' ditolak: PMS B'+otherSide+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan BUS-A dan BUS-B langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
     return;
   }
   b[key] = willClose ? 'closed' : 'open';
