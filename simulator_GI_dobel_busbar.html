@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulator PMT &amp; PMS — Gardu Induk Double Busbar 150/20 kV</title>
+<style>
+  :root{
+    --bg:#F5F4F0; --card:#FFFFFF; --border:#DEDCD3; --border-strong:#C7C4B7;
+    --text:#23221F; --text-secondary:#6B6960; --text-muted:#9A9789;
+    --green:#1D9E75; --red:#E24B4A; --hv:#D03A39; --lv:#8B5A2B; --off:#9C9A92;
+    --bg-success:#E1F5EE; --bg-danger:#FCEBEB; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;padding:24px;}
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{font-size:18px;font-weight:600;margin:0 0 4px;}
+  p.sub{font-size:13px;color:var(--text-secondary);margin:0 0 20px;}
+  .panel{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;}
+  .panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+  .panel-title{font-size:13px;font-weight:600;font-family:var(--mono);}
+  .panel-sub{font-size:11px;color:var(--text-secondary);font-family:var(--mono);}
+  svg{width:100%;height:auto;display:block;}
+  text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
+  .mono{font-family:var(--mono);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:16px;}
+  .card{background:var(--card);border:0.5px solid var(--border);border-radius:8px;padding:10px 12px;}
+  .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  .card-id{font-size:12px;font-family:var(--mono);color:var(--text-secondary);}
+  .badge{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:500;}
+  .card-type{font-size:13px;margin-bottom:8px;}
+  .btn-row{display:flex;gap:6px;}
+  button{font:inherit;font-size:12px;padding:6px 0;border-radius:6px;border:0.5px solid var(--border-strong);background:var(--card);color:var(--text);cursor:pointer;flex:1;}
+  button:hover{background:#F0EFE9;}
+  button:active{transform:scale(0.98);}
+  .btn-full{width:100%;margin-top:6px;}
+  .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
+  #resetBtn{flex:none;padding:8px 14px;font-weight:500;}
+  .legend{font-size:12px;color:var(--text-secondary);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{display:inline-block;width:18px;height:3px;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:2px;}
+  .log-title{font-size:12px;font-weight:600;margin-bottom:6px;}
+  #logger{background:var(--card);border:0.5px solid var(--border);border-radius:8px;padding:8px 12px;max-height:220px;overflow-y:auto;font-family:var(--mono);font-size:11px;line-height:1.8;}
+  #logger div{border-bottom:0.5px solid var(--border);padding:2px 0;}
+  #logger div:last-child{border-bottom:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Simulator PMT &amp; PMS — gardu induk double busbar 150/20 kV</h1>
+  <p class="sub">4 bay penghantar, 2 bay trafo, 1 bay kopel, 1 bay kapasitor. Klik simbol PMS (belah ketupat) atau PMT (kotak) untuk mengoperasikan, lengkap dengan interlock dan logger switching.</p>
+
+  <div class="panel">
+    <div class="panel-head">
+      <span class="panel-title">SLD MIMIC — GI DOUBLE BUSBAR 150/20 kV</span>
+      <span class="panel-sub" id="summaryTop"></span>
+    </div>
+    <svg viewBox="0 0 680 290" id="sld">
+      <defs>
+        <marker id="arR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      </defs>
+      <line id="busline1" x1="30" y1="40" x2="660" y2="40" stroke-width="4"/>
+      <text x="36" y="28" font-size="12" fill="var(--text-secondary)" class="mono">BUS-1 (150 kV)</text>
+      <line id="busline2" x1="30" y1="68" x2="660" y2="68" stroke-width="4"/>
+      <text x="36" y="56" font-size="12" fill="var(--text-secondary)" class="mono">BUS-2 (150 kV)</text>
+      <g id="bays"></g>
+    </svg>
+  </div>
+
+  <div id="table" class="grid"></div>
+
+  <div class="controls">
+    <button id="resetBtn">Reset ke kondisi normal (semua PMS dan PMT terbuka)</button>
+    <span style="font-size:12px;color:var(--text-secondary)" id="summary"></span>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:#D03A39"></span>150 kV bertegangan</span>
+    <span><span class="swatch" style="background:#8B5A2B"></span>20 kV bertegangan</span>
+    <span><span class="swatch" style="background:#9C9A92"></span>tidak bertegangan</span>
+    <span><span class="dot" style="background:#D03A39;border-radius:3px"></span>PMT tertutup (terisi)</span>
+    <span><span class="dot" style="background:none;border:1.5px solid #9C9A92;border-radius:3px"></span>PMT terbuka (kosong)</span>
+  </div>
+
+  <div class="log-title">Logger switching</div>
+  <div id="logger"></div>
+</div>
+
+<script>
+(function(){
+var greenC='#1D9E75', redC='#E24B4A';
+var hvOn='#D03A39', lvOn='#8B5A2B', offC='#9C9A92';
+var bays = [
+{id:'PB-01',type:'Pembangkit 1',kind:'gen',pms1:'open',pms2:'open',pmt:'open'},
+{id:'PB-02',type:'Pembangkit 2',kind:'gen',pms1:'open',pms2:'open',pmt:'open'},
+{id:'PH-01',type:'Penghantar 1',kind:'line',pms1:'open',pms2:'open',pmt:'open'},
+{id:'PH-02',type:'Penghantar 2',kind:'line',pms1:'open',pms2:'open',pmt:'open'},
+{id:'TR-01',type:'Trafo 1',kind:'trafo',pms1:'open',pms2:'open',pmt:'open',pmtLV:'open'},
+{id:'TR-02',type:'Trafo 2',kind:'trafo',pms1:'open',pms2:'open',pmt:'open',pmtLV:'open'},
+{id:'CAP-01',type:'Kapasitor',kind:'cap',pms1:'open',pms2:'open',pmt:'open'}
+];
+var kopel = {id:'KOP-01',pms1:'open',pms2:'open',pmt:'open'};
+var xs = [50,130,210,290,370,450,610];
+var xKopel = 530;
+var logs = [];
+
+function pmsHtml(x,y,bayId,target){
+  var d=7;
+  var pts=(x)+','+(y-d)+' '+(x+d)+','+y+' '+x+','+(y+d)+' '+(x-d)+','+y;
+  return '<polygon id="pms'+target+'-'+bayId+'" points="'+pts+'" stroke-width="1.5"/>';
+}
+
+function bayHtml(b,x){
+  var equip='';
+  var labelY=240, statusY=256;
+  if(b.kind==='line'){
+    equip = '<line id="eqHV-'+b.id+'" x1="'+x+'" y1="186" x2="'+x+'" y2="206" stroke-width="1.5" marker-end="url(#arR)"/>';
+  } else if(b.kind==='gen'){
+    equip = '<circle id="eqHV-'+b.id+'" cx="'+x+'" cy="196" r="12" fill="none" stroke-width="1.5"/>'+
+      '<text x="'+x+'" y="196" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="var(--text-secondary)" id="eqHVtext-'+b.id+'">G</text>';
+  } else if(b.kind==='cap'){
+    equip = '<line id="eqHV-'+b.id+'a" x1="'+(x-9)+'" y1="188" x2="'+(x+9)+'" y2="188" stroke-width="2"/>'+
+            '<line id="eqHV-'+b.id+'b" x1="'+(x-9)+'" y1="196" x2="'+(x+9)+'" y2="196" stroke-width="2"/>';
+  } else if(b.kind==='trafo'){
+    equip = '<circle id="eqHV-'+b.id+'" cx="'+x+'" cy="196" r="11" fill="none" stroke-width="1.5"/>'+
+      '<line id="riserLV1-'+b.id+'" x1="'+x+'" y1="207" x2="'+x+'" y2="222" stroke-width="2"/>'+
+      '<rect id="cbLV-'+b.id+'" data-action="pmtLV" data-bay="'+b.id+'" x="'+(x-9)+'" y="222" width="18" height="18" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
+      '<line id="riserLV2-'+b.id+'" x1="'+x+'" y1="240" x2="'+x+'" y2="252" stroke-width="2" marker-end="url(#arR)"/>'+
+      '<text x="'+x+'" y="219" text-anchor="middle" class="mono" fill="var(--text-muted)" font-size="9">20 kV</text>';
+    labelY=268; statusY=283;
+  }
+  return '<g data-bay="'+b.id+'">'+
+    '<line id="r1-'+b.id+'" x1="'+x+'" y1="40" x2="'+x+'" y2="100" stroke-width="2.5"/>'+
+    '<line id="r2-'+b.id+'" x1="'+x+'" y1="68" x2="'+x+'" y2="100" stroke-width="2.5"/>'+
+    '<g data-action="pms" data-target="1" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x,55,b.id,1)+'</g>'+
+    '<g data-action="pms" data-target="2" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x,83,b.id,2)+'</g>'+
+    '<rect id="cb-'+b.id+'" data-action="pmt" data-bay="'+b.id+'" x="'+(x-11)+'" y="100" width="22" height="26" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
+    '<text x="'+x+'" y="138" text-anchor="middle" class="mono" fill="var(--text-secondary)" font-size="11">'+b.id+'</text>'+
+    '<line id="riser-'+b.id+'" x1="'+x+'" y1="126" x2="'+x+'" y2="186" stroke-width="2"/>'+
+    equip+
+    '<text x="'+x+'" y="'+labelY+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--text)">'+b.type+'</text>'+
+    '<text x="'+x+'" y="'+statusY+'" text-anchor="middle" font-size="11" id="status-'+b.id+'" fill="var(--text-secondary)"></text>'+
+    '</g>';
+}
+
+function kopelHtml(x){
+  return '<g data-bay="'+kopel.id+'">'+
+    '<line id="r1-'+kopel.id+'" x1="'+x+'" y1="40" x2="'+x+'" y2="50" stroke-width="2.5"/>'+
+    '<g data-action="pms" data-target="1" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(x,55,kopel.id,1)+'</g>'+
+    '<line x1="'+x+'" y1="60" x2="'+x+'" y2="64" stroke="var(--text-secondary)" stroke-width="2"/>'+
+    '<rect id="cb-'+kopel.id+'" data-action="pmt" data-bay="'+kopel.id+'" x="'+(x-11)+'" y="64" width="22" height="20" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
+    '<line x1="'+x+'" y1="84" x2="'+x+'" y2="89" stroke="var(--text-secondary)" stroke-width="2"/>'+
+    '<g data-action="pms" data-target="2" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(x,95,kopel.id,2)+'</g>'+
+    '<line id="r2-'+kopel.id+'" x1="'+x+'" y1="100" x2="'+(x-40)+'" y2="100" stroke-width="2.5"/>'+
+    '<line x1="'+(x-40)+'" y1="100" x2="'+(x-40)+'" y2="68" stroke-width="2.5" id="r2b-'+kopel.id+'"/>'+
+    '<text x="'+x+'" y="128" text-anchor="middle" font-size="14" font-weight="500" fill="var(--text)">Kopel</text>'+
+    '<text x="'+x+'" y="144" text-anchor="middle" font-size="11" id="status-'+kopel.id+'" fill="var(--text-secondary)"></text>'+
+    '</g>';
+}
+
+function bayCard(b){
+  var lvRow = b.kind==='trafo' ? '<button data-action="pmtLV" data-bay="'+b.id+'" class="btn-full" id="btnCBLV-'+b.id+'"></button>' : '';
+  return '<div class="card">'+
+    '<div class="card-top"><span class="card-id">'+b.id+'</span><span class="badge" id="badge-'+b.id+'"></span></div>'+
+    '<div class="card-type">'+b.type+'</div>'+
+    '<div class="btn-row">'+
+    '<button data-action="pms" data-target="1" data-bay="'+b.id+'" id="btnP1-'+b.id+'"></button>'+
+    '<button data-action="pms" data-target="2" data-bay="'+b.id+'" id="btnP2-'+b.id+'"></button>'+
+    '</div>'+
+    '<button data-action="pmt" data-bay="'+b.id+'" class="btn-full" id="btnCB-'+b.id+'"></button>'+
+    lvRow+'</div>';
+}
+function kopelCard(){
+  return '<div class="card">'+
+    '<div class="card-top"><span class="card-id">'+kopel.id+'</span><span class="badge" id="badge-'+kopel.id+'"></span></div>'+
+    '<div class="card-type">Kopel bus 1/2</div>'+
+    '<div class="btn-row">'+
+    '<button data-action="pms" data-target="1" data-bay="'+kopel.id+'" id="btnP1-'+kopel.id+'"></button>'+
+    '<button data-action="pms" data-target="2" data-bay="'+kopel.id+'" id="btnP2-'+kopel.id+'"></button>'+
+    '</div>'+
+    '<button data-action="pmt" data-bay="'+kopel.id+'" class="btn-full" id="btnCB-'+kopel.id+'"></button>'+
+    '</div>';
+}
+
+function buildDom(){
+  var svgHtml='';
+  for(var i=0;i<bays.length;i++){ svgHtml += bayHtml(bays[i],xs[i]); }
+  svgHtml += kopelHtml(xKopel);
+  document.getElementById('bays').innerHTML = svgHtml;
+  var cardHtml='';
+  bays.forEach(function(b){ cardHtml += bayCard(b); });
+  cardHtml += kopelCard();
+  document.getElementById('table').innerHTML = cardHtml;
+}
+
+function paint(el,color){
+  if(!el) return;
+  var tag = el.tagName.toLowerCase();
+  if(tag==='polygon' || tag==='circle'){ el.setAttribute('fill', color); el.setAttribute('stroke', color); }
+  else { el.setAttribute('stroke', color); }
+}
+
+function isBusesParalleled(){
+  return kopel.pms1==='closed' && kopel.pmt==='closed' && kopel.pms2==='closed';
+}
+
+function computeEnergization(){
+  var busE = {1:false,2:false};
+  bays.forEach(function(b){
+    if((b.kind!=='line' && b.kind!=='gen') || b.pmt!=='closed') return;
+    if(b.pms1==='closed') busE[1]=true;
+    if(b.pms2==='closed') busE[2]=true;
+  });
+  var allBays = bays.concat([kopel]);
+  var hasTie = allBays.some(function(b){ return b.pmt==='closed' && b.pms1==='closed' && b.pms2==='closed'; });
+  if(hasTie){ var merged = busE[1]||busE[2]; busE[1]=merged; busE[2]=merged; }
+  bays.forEach(function(b){
+    var fed1 = b.pms1==='closed' && busE[1];
+    var fed2 = b.pms2==='closed' && busE[2];
+    if(b.kind==='line' || b.kind==='gen'){ b._hv = b.pmt==='closed' && (b.pms1==='closed'||b.pms2==='closed'); }
+    else { b._hv = b.pmt==='closed' && (fed1||fed2); }
+    if(b.kind==='trafo'){ b._lv = b._hv && b.pmtLV==='closed'; }
+  });
+  return busE;
+}
+
+function render(){
+  var busE = computeEnergization();
+  paint(document.getElementById('busline1'), busE[1]?hvOn:offC);
+  paint(document.getElementById('busline2'), busE[2]?hvOn:offC);
+  bays.forEach(function(b){ updateBayVisual(b, busE); });
+  updateKopelVisual(busE);
+  updateSummary(busE);
+}
+
+function setStub(prefix, bay, side, closed, energized){
+  var r=document.getElementById(prefix+side+'-'+bay.id);
+  var p=document.getElementById('pms'+side+'-'+bay.id);
+  if(closed){ paint(r, energized?hvOn:offC); r.removeAttribute('stroke-dasharray'); paint(p, energized?hvOn:offC); }
+  else { paint(r, offC); r.setAttribute('stroke-dasharray','3,3'); p.setAttribute('fill','var(--card)'); p.setAttribute('stroke', offC); }
+}
+
+function updateBayVisual(b, busE){
+  setStub('r', b, 1, b.pms1==='closed', busE[1]);
+  setStub('r', b, 2, b.pms2==='closed', busE[2]);
+  paint(document.getElementById('riser-'+b.id), b._hv?hvOn:offC);
+  if(b.kind==='line'){ paint(document.getElementById('eqHV-'+b.id), b._hv?hvOn:offC); }
+  else if(b.kind==='gen'){
+    document.getElementById('eqHV-'+b.id).setAttribute('stroke', b._hv?hvOn:offC);
+    document.getElementById('eqHVtext-'+b.id).setAttribute('fill', b._hv?hvOn:offC);
+  }
+  else if(b.kind==='cap'){ paint(document.getElementById('eqHV-'+b.id+'a'), b._hv?hvOn:offC); paint(document.getElementById('eqHV-'+b.id+'b'), b._hv?hvOn:offC); }
+  else if(b.kind==='trafo'){
+    paint(document.getElementById('eqHV-'+b.id), b._hv?hvOn:offC);
+    paint(document.getElementById('riserLV1-'+b.id), b._lv?lvOn:offC);
+    paint(document.getElementById('riserLV2-'+b.id), b._lv?lvOn:offC);
+  }
+  var cb=document.getElementById('cb-'+b.id);
+  var badge=document.getElementById('badge-'+b.id), btnCB=document.getElementById('btnCB-'+b.id);
+  var btnP1=document.getElementById('btnP1-'+b.id), btnP2=document.getElementById('btnP2-'+b.id);
+  var closed=b.pmt==='closed';
+  cb.setAttribute('stroke', closed?hvOn:offC);
+  cb.setAttribute('fill', closed?hvOn:'none');
+  badge.style.background = closed ? 'var(--bg-success)' : 'var(--bg-danger)';
+  badge.style.color = closed ? greenC : redC;
+  badge.textContent = closed ? 'TERTUTUP' : 'TERBUKA';
+  btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
+  btnP1.textContent = 'PMS B1 ' + (b.pms1==='closed'?'tertutup':'terbuka');
+  btnP2.textContent = 'PMS B2 ' + (b.pms2==='closed'?'tertutup':'terbuka');
+  btnP1.style.background = b.pms1==='closed' ? '#FCEBEB' : '';
+  btnP1.style.color = b.pms1==='closed' ? hvOn : '';
+  btnP2.style.background = b.pms2==='closed' ? '#FCEBEB' : '';
+  btnP2.style.color = b.pms2==='closed' ? hvOn : '';
+  var status=document.getElementById('status-'+b.id);
+  var txt = 'PMS B1 '+b.pms1+' \u00b7 PMS B2 '+b.pms2+' \u00b7 PMT '+(closed?'tertutup':'terbuka')+' \u00b7 '+(b._hv?'bertegangan':'tidak bertegangan');
+  if(b.kind==='trafo'){
+    var cbLV=document.getElementById('cbLV-'+b.id);
+    var closedLV=b.pmtLV==='closed';
+    cbLV.setAttribute('stroke', closedLV?lvOn:offC);
+    cbLV.setAttribute('fill', closedLV?lvOn:'none');
+    var btnLV=document.getElementById('btnCBLV-'+b.id);
+    btnLV.textContent = closedLV ? 'Buka PMT LV' : 'Tutup PMT LV';
+    txt += ' \u00b7 LV '+(b._lv?'bertegangan':'tidak bertegangan');
+  }
+  status.textContent = txt;
+}
+
+function updateKopelVisual(busE){
+  setStub('r', kopel, 1, kopel.pms1==='closed', busE[1]);
+  var r2 = document.getElementById('r2-'+kopel.id), r2b = document.getElementById('r2b-'+kopel.id);
+  var p2 = document.getElementById('pms2-'+kopel.id);
+  if(kopel.pms2==='closed'){ paint(r2, busE[2]?hvOn:offC); r2.removeAttribute('stroke-dasharray'); paint(r2b, busE[2]?hvOn:offC); r2b.removeAttribute('stroke-dasharray'); paint(p2, busE[2]?hvOn:offC); }
+  else { paint(r2, offC); r2.setAttribute('stroke-dasharray','3,3'); paint(r2b, offC); r2b.setAttribute('stroke-dasharray','3,3'); p2.setAttribute('fill','var(--card)'); p2.setAttribute('stroke', offC); }
+  var closed = kopel.pmt==='closed';
+  var cb=document.getElementById('cb-'+kopel.id);
+  var badge=document.getElementById('badge-'+kopel.id), btnCB=document.getElementById('btnCB-'+kopel.id);
+  var btnP1=document.getElementById('btnP1-'+kopel.id), btnP2=document.getElementById('btnP2-'+kopel.id);
+  cb.setAttribute('stroke', closed?hvOn:offC);
+  cb.setAttribute('fill', closed?hvOn:'none');
+  badge.style.background = closed ? 'var(--bg-success)' : 'var(--bg-danger)';
+  badge.style.color = closed ? greenC : redC;
+  badge.textContent = closed ? 'TERTUTUP' : 'TERBUKA';
+  btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
+  btnP1.textContent = 'PMS B1 ' + (kopel.pms1==='closed'?'tertutup':'terbuka');
+  btnP2.textContent = 'PMS B2 ' + (kopel.pms2==='closed'?'tertutup':'terbuka');
+  btnP1.style.background = kopel.pms1==='closed' ? '#FCEBEB' : '';
+  btnP1.style.color = kopel.pms1==='closed' ? hvOn : '';
+  btnP2.style.background = kopel.pms2==='closed' ? '#FCEBEB' : '';
+  btnP2.style.color = kopel.pms2==='closed' ? hvOn : '';
+  document.getElementById('status-'+kopel.id).textContent = 'PMS B1 '+kopel.pms1+' \u00b7 PMS B2 '+kopel.pms2+' \u00b7 PMT '+(closed?'tertutup':'terbuka');
+}
+
+function updateSummary(busE){
+  var total = bays.length+1, closedCount=0;
+  bays.forEach(function(b){ if(b.pmt==='closed') closedCount++; if(b.kind==='trafo'){ total++; if(b.pmtLV==='closed') closedCount++; } });
+  if(kopel.pmt==='closed') closedCount++;
+  var energizedBuses = (busE[1]?1:0)+(busE[2]?1:0);
+  var txt = closedCount+' dari '+total+' PMT tertutup \u00b7 '+energizedBuses+'/2 busbar bertegangan';
+  document.getElementById('summary').textContent = txt;
+  document.getElementById('summaryTop').textContent = txt.toUpperCase();
+}
+
+function log(text, ok){
+  var time = new Date().toLocaleTimeString('id-ID', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  logs.unshift({time:time, text:text, ok:ok});
+  if(logs.length>80) logs.pop();
+  renderLog();
+}
+function renderLog(){
+  var html = logs.map(function(l){
+    var badge = l.ok ? '<span style="color:'+greenC+'">OK</span>' : '<span style="color:'+redC+'">DITOLAK</span>';
+    return '<div><span style="color:var(--text-muted)">'+l.time+'</span> &nbsp;'+badge+'&nbsp; '+l.text+'</div>';
+  }).join('');
+  document.getElementById('logger').innerHTML = html || '<span style="color:var(--text-muted)">Belum ada aktivitas switching.</span>';
+}
+
+function attemptTogglePms(b, side){
+  if(b.pmt==='closed'){
+    log('PMS B'+side+' '+b.id+' ditolak: PMT bay harus terbuka sebelum PMS dioperasikan', false);
+    return;
+  }
+  var key='pms'+side, otherSide=(side===1?2:1), otherKey='pms'+otherSide;
+  var willClose = b[key]==='open';
+  if(willClose && b.id!==kopel.id && b[otherKey]==='closed' && !isBusesParalleled()){
+    log('PMS B'+side+' '+b.id+' ditolak: PMS B'+otherSide+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan Bus-1 dan Bus-2 langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
+    return;
+  }
+  b[key] = willClose ? 'closed' : 'open';
+  log('PMS B'+side+' '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
+  render();
+}
+function attemptTogglePMT(b){
+  var willClose = b.pmt==='open';
+  b.pmt = willClose ? 'closed' : 'open';
+  log('PMT '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
+  render();
+}
+function attemptTogglePMTLV(b){
+  var willClose = b.pmtLV==='open';
+  if(willClose && !b._hv){
+    log('PMT LV '+b.id+' ditolak: sisi HV trafo belum bertegangan', false);
+    return;
+  }
+  b.pmtLV = willClose ? 'closed' : 'open';
+  log('PMT LV '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
+  render();
+}
+
+function handle(e){
+  var t=e.target.closest('[data-action]');
+  if(!t) return;
+  var action=t.getAttribute('data-action');
+  var bayId=t.getAttribute('data-bay');
+  var b = (bayId===kopel.id) ? kopel : bays.filter(function(x){return x.id===bayId;})[0];
+  if(!b) return;
+  if(action==='pms'){
+    var target=parseInt(t.getAttribute('data-target'),10);
+    attemptTogglePms(b, target);
+  } else if(action==='pmt'){
+    attemptTogglePMT(b);
+  } else if(action==='pmtLV'){
+    attemptTogglePMTLV(b);
+  }
+}
+
+document.getElementById('resetBtn').addEventListener('click', function(){
+  bays.forEach(function(b){ b.pms1='open'; b.pms2='open'; b.pmt='open'; if(b.kind==='trafo'){ b.pmtLV='open'; } });
+  kopel.pms1='open'; kopel.pms2='open'; kopel.pmt='open';
+  log('Sistem direset ke kondisi normal: semua PMS dan PMT terbuka, tidak bertegangan', true);
+  render();
+});
+
+buildDom();
+document.getElementById('sld').addEventListener('click', handle);
+document.getElementById('table').addEventListener('click', handle);
+log('Sistem dimulai pada kondisi normal: semua PMS dan PMT terbuka, tidak bertegangan', true);
+render();
+})();
+</script>
+</body>
+</html>
