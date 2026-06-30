@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIMUGI — Simulator Gardu Induk</title>
+<style>
+  @keyframes pulse-line {
+    0%, 100% { stroke-opacity: 1; }
+    50% { stroke-opacity: 0.45; }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  @keyframes flow {
+    to { stroke-dashoffset: -24; }
+  }
+  :root{
+    --bg: #11151a;
+    --bg-grid: rgba(255,255,255,0.035);
+    --panel: #181d24;
+    --panel-border: #2a313b;
+    --panel-border-hover: #3c4754;
+    --text: #e7e5df;
+    --text-secondary: #9aa1ab;
+    --text-muted: #5c6470;
+    --hv: #e0524f;
+    --hv-glow: rgba(224,82,79,0.35);
+    --lv: #c18a4f;
+    --off: #4a5158;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 100% 28px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 28px 100%,
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:56px 24px 64px;}
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--hv);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow-dot{width:6px;height:6px;border-radius:50%;background:var(--hv);animation:pulse-dot 2s ease-in-out infinite;flex:none;}
+
+  h1{font-size:30px;font-weight:600;margin:0 0 12px;letter-spacing:-0.01em;}
+  p.lead{font-size:15px;color:var(--text-secondary);line-height:1.65;margin:0 0 8px;max-width:54ch;}
+
+  .hero{
+    margin:32px 0 40px;
+    background:var(--panel);
+    border:0.5px solid var(--panel-border);
+    border-radius:16px;
+    padding:8px;
+    overflow:hidden;
+  }
+  .hero svg{display:block;width:100%;height:auto;}
+  .hero-foot{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 14px 4px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    color:var(--text-muted);
+    letter-spacing:0.04em;
+  }
+  .hero-foot span.live{color:var(--hv);}
+
+  .section-label{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-muted);
+    margin:0 0 14px;
+  }
+
+  .cards{display:flex;flex-direction:column;gap:14px;}
+  a.card{
+    position:relative;
+    display:block;
+    background:var(--panel);
+    border:0.5px solid var(--panel-border);
+    border-radius:14px;
+    padding:20px 22px;
+    text-decoration:none;
+    color:inherit;
+    transition:border-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    overflow:hidden;
+  }
+  a.card::before{
+    content:'';
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:3px;
+    background:var(--off);
+    transition:background 0.15s ease;
+  }
+  a.card:hover{border-color:var(--panel-border-hover); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,0.35);}
+  a.card:hover::before{background:var(--hv); box-shadow:0 0 12px var(--hv-glow);}
+  a.card:active{transform:translateY(0);}
+
+  .card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;}
+  .card-title-row{display:flex;align-items:center;gap:10px;}
+  .card-icon{
+    flex:none;width:34px;height:34px;border-radius:8px;
+    background:rgba(224,82,79,0.1);
+    border:0.5px solid rgba(224,82,79,0.25);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card-title{font-size:16px;font-weight:600;margin:0;}
+  .badge{
+    flex:none;font-family:var(--mono);font-size:10.5px;font-weight:500;
+    color:var(--text-secondary);background:rgba(255,255,255,0.04);
+    border:0.5px solid var(--panel-border);
+    padding:4px 9px;border-radius:6px;white-space:nowrap;letter-spacing:0.03em;
+  }
+  .card-desc{font-size:13px;color:var(--text-secondary);line-height:1.65;margin:0 0 14px;}
+  .card-meta{
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:0.5px solid var(--panel-border);
+    padding-top:12px;
+  }
+  .card-link{font-size:11.5px;color:var(--text-muted);font-family:var(--mono);word-break:break-all;}
+  .arrow{display:inline-block;margin-left:6px;color:var(--text-muted);transition:transform 0.15s ease;}
+  a.card:hover .arrow{transform:translateX(3px);color:var(--hv);}
+
+  .legend{
+    display:flex;gap:18px;flex-wrap:wrap;
+    margin-top:36px;padding-top:20px;border-top:0.5px solid var(--panel-border);
+    font-family:var(--mono);font-size:11px;color:var(--text-muted);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{display:inline-block;width:14px;height:3px;border-radius:1px;}
+
+  footer{margin-top:28px;font-size:12px;color:var(--text-muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow"><span class="eyebrow-dot"></span>SIMUGI &mdash; sistem simulasi gardu induk</p>
+  <h1>Simulator gardu induk</h1>
+  <p class="lead">Simulator interaktif buka tutup PMT dan PMS untuk dua konfigurasi switchyard gardu induk 150/20 kV, lengkap dengan interlock dan logger switching.</p>
+
+  <div class="hero">
+    <svg viewBox="0 0 720 220" role="img" aria-label="Ilustrasi diagram satu garis gardu induk">
+      <line x1="0" y1="40" x2="720" y2="40" stroke="var(--hv)" stroke-width="3" stroke-opacity="0.9" style="animation:pulse-line 3s ease-in-out infinite"/>
+      <line x1="0" y1="180" x2="720" y2="180" stroke="var(--lv)" stroke-width="3" stroke-opacity="0.7" style="animation:pulse-line 3.6s ease-in-out infinite 0.4s"/>
+
+      <g stroke="var(--off)" stroke-width="1.4" fill="none">
+        <line x1="100" y1="40" x2="100" y2="70"/>
+        <line x1="240" y1="40" x2="240" y2="70"/>
+        <line x1="380" y1="40" x2="380" y2="70"/>
+        <line x1="520" y1="40" x2="520" y2="70"/>
+        <line x1="620" y1="40" x2="620" y2="70"/>
+      </g>
+
+      <g stroke="var(--hv)" stroke-width="1.6" fill="none" stroke-dasharray="4 6" style="animation:flow 1.2s linear infinite">
+        <line x1="100" y1="70" x2="100" y2="150"/>
+      </g>
+      <g stroke="var(--hv)" stroke-width="1.6" fill="none" stroke-dasharray="4 6" style="animation:flow 1.5s linear infinite">
+        <line x1="380" y1="70" x2="380" y2="150"/>
+      </g>
+      <g stroke="var(--lv)" stroke-width="1.6" fill="none" stroke-dasharray="4 6" style="animation:flow 1.8s linear infinite">
+        <line x1="620" y1="70" x2="620" y2="150"/>
+      </g>
+
+      <rect x="89" y="70" width="22" height="22" rx="3" fill="rgba(224,82,79,0.18)" stroke="var(--hv)" stroke-width="1.4"/>
+      <rect x="229" y="70" width="22" height="22" rx="3" fill="none" stroke="var(--off)" stroke-width="1.4"/>
+      <rect x="369" y="70" width="22" height="22" rx="3" fill="rgba(224,82,79,0.18)" stroke="var(--hv)" stroke-width="1.4"/>
+      <rect x="509" y="70" width="22" height="22" rx="3" fill="none" stroke="var(--off)" stroke-width="1.4"/>
+      <rect x="609" y="70" width="22" height="22" rx="3" fill="rgba(193,138,79,0.2)" stroke="var(--lv)" stroke-width="1.4"/>
+
+      <circle cx="100" cy="160" r="12" fill="none" stroke="var(--hv)" stroke-width="1.4"/>
+      <text x="100" y="160" text-anchor="middle" dominant-baseline="central" font-size="11" fill="var(--hv)" font-family="var(--mono)">G</text>
+
+      <line x1="240" y1="150" x2="240" y2="170" stroke="var(--off)" stroke-width="1.4"/>
+
+      <circle cx="380" cy="158" r="11" fill="none" stroke="var(--hv)" stroke-width="1.4"/>
+      <line x1="380" y1="169" x2="380" y2="180" stroke="var(--lv)" stroke-width="1.4"/>
+
+      <line x1="520" y1="150" x2="520" y2="170" stroke="var(--off)" stroke-width="1.4"/>
+
+      <line x1="615" y1="154" x2="625" y2="154" stroke="var(--lv)" stroke-width="1.6"/>
+      <line x1="615" y1="162" x2="625" y2="162" stroke="var(--lv)" stroke-width="1.6"/>
+
+      <text x="14" y="28" font-family="var(--mono)" font-size="9.5" fill="var(--text-muted)" letter-spacing="0.05em">BUS-1 / BUS-A &middot; 150 kV</text>
+      <text x="14" y="204" font-family="var(--mono)" font-size="9.5" fill="var(--text-muted)" letter-spacing="0.05em">BUS-2 / BUS-B &middot; 20 kV</text>
+    </svg>
+    <div class="hero-foot">
+      <span>SLD MIMIC PREVIEW</span>
+      <span class="live">&#9679; SIMULASI AKTIF</span>
+    </div>
+  </div>
+
+  <p class="section-label">Pilih konfigurasi</p>
+  <div class="cards">
+    <a class="card" href="simulator_GI_dobel_busbar.html">
+      <div class="card-top">
+        <div class="card-title-row">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--hv)" stroke-width="1.4"><rect x="2" y="2" width="12" height="4" rx="1"/><rect x="2" y="10" width="12" height="4" rx="1"/><line x1="5" y1="6" x2="5" y2="10"/><line x1="11" y1="6" x2="11" y2="10"/></svg>
+          </span>
+          <p class="card-title">Double busbar</p>
+        </div>
+        <span class="badge">8 BAY</span>
+      </div>
+      <p class="card-desc">Konfigurasi rel ganda dengan 2 bay pembangkit, 2 bay penghantar, 2 bay trafo, 1 bay kopel, dan 1 bay kapasitor. PMS dapat dioperasikan independen ke Bus-1 maupun Bus-2.</p>
+      <div class="card-meta">
+        <span class="card-link">simulator_GI_dobel_busbar.html</span>
+        <span class="arrow">buka &rarr;</span>
+      </div>
+    </a>
+
+    <a class="card" href="simulator_satu_setengah_breaker.html">
+      <div class="card-top">
+        <div class="card-title-row">
+          <span class="card-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="var(--hv)" stroke-width="1.4"><line x1="8" y1="1" x2="8" y2="15"/><rect x="5.5" y="3.5" width="5" height="3" rx="0.6"/><rect x="5.5" y="6.5" width="5" height="3" rx="0.6"/><rect x="5.5" y="9.5" width="5" height="3" rx="0.6"/><line x1="8" y1="5" x2="3" y2="5"/><line x1="8" y1="11" x2="13" y2="11"/></svg>
+          </span>
+          <p class="card-title">Satu setengah breaker</p>
+        </div>
+        <span class="badge">4 DIAMETER</span>
+      </div>
+      <p class="card-desc">Skema breaker-and-a-half dengan 4 diameter (pembangkit, penghantar, trafo, kapasitor), masing-masing 3 PMT yang diapit 6 PMS antara Bus-A dan Bus-B.</p>
+      <div class="card-meta">
+        <span class="card-link">simulator_satu_setengah_breaker.html</span>
+        <span class="arrow">buka &rarr;</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="legend">
+    <span><span class="sw" style="background:var(--hv)"></span>150 kV bertegangan</span>
+    <span><span class="sw" style="background:var(--lv)"></span>20 kV bertegangan</span>
+    <span><span class="sw" style="background:var(--off)"></span>tidak bertegangan</span>
+  </div>
+
+  <footer>Klik salah satu kartu untuk membuka simulatornya.</footer>
+</div>
+</body>
+</html>
