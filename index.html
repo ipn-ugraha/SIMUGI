@@ -150,10 +150,30 @@
   .sw{display:inline-block;width:14px;height:3px;border-radius:1px;}
 
   footer{margin-top:28px;font-size:12px;color:var(--text-muted);}
+
+  #home{display:block;}
+  #viewer{display:none;height:100vh;flex-direction:column;}
+  .viewer-bar{
+    flex:none;
+    display:flex;align-items:center;gap:12px;
+    padding:10px 16px;
+    background:var(--panel);
+    border-bottom:0.5px solid var(--panel-border);
+  }
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--sans);font-size:13px;font-weight:500;
+    color:var(--text);background:rgba(255,255,255,0.04);
+    border:0.5px solid var(--panel-border);border-radius:8px;
+    padding:7px 12px;cursor:pointer;
+  }
+  .back-btn:hover{border-color:var(--panel-border-hover);background:rgba(255,255,255,0.07);}
+  .viewer-title{font-family:var(--mono);font-size:11.5px;color:var(--text-muted);letter-spacing:0.03em;}
+  #frame{flex:1;width:100%;border:0;background:#fff;}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="home"><div class="wrap">
   <p class="eyebrow"><span class="eyebrow-dot"></span>SIMUGI &mdash; sistem simulasi gardu induk</p>
   <h1>Simulator gardu induk</h1>
   <p class="lead">Simulator interaktif buka tutup PMT dan PMS untuk dua konfigurasi switchyard gardu induk 150/20 kV, lengkap dengan interlock dan logger switching.</p>
@@ -211,7 +231,7 @@
 
   <p class="section-label">Pilih konfigurasi</p>
   <div class="cards">
-    <a class="card" href="simulator_GI_dobel_busbar.html">
+    <a class="card" href="simulator_GI_dobel_busbar.html" onclick="return openSim(event,'Double busbar','simulator_GI_dobel_busbar.html')">
       <div class="card-top">
         <div class="card-title-row">
           <span class="card-icon">
@@ -223,12 +243,12 @@
       </div>
       <p class="card-desc">Konfigurasi rel ganda dengan 2 bay pembangkit, 2 bay penghantar, 2 bay trafo, 1 bay kopel, dan 1 bay kapasitor. PMS dapat dioperasikan independen ke Bus-1 maupun Bus-2.</p>
       <div class="card-meta">
-        <span class="card-link">simulator_GI_dobel_busbar.html</span>
+        <span class="card-link">Konfigurasi rel ganda</span>
         <span class="arrow">buka &rarr;</span>
       </div>
     </a>
 
-    <a class="card" href="simulator_satu_setengah_breaker.html">
+    <a class="card" href="simulator_satu_setengah_breaker.html" onclick="return openSim(event,'Satu setengah breaker','simulator_satu_setengah_breaker.html')">
       <div class="card-top">
         <div class="card-title-row">
           <span class="card-icon">
@@ -240,7 +260,7 @@
       </div>
       <p class="card-desc">Skema breaker-and-a-half dengan 4 diameter (pembangkit, penghantar, trafo, kapasitor), masing-masing 3 PMT yang diapit 6 PMS antara Bus-A dan Bus-B.</p>
       <div class="card-meta">
-        <span class="card-link">simulator_satu_setengah_breaker.html</span>
+        <span class="card-link">Skema breaker-and-a-half</span>
         <span class="arrow">buka &rarr;</span>
       </div>
     </a>
@@ -253,6 +273,51 @@
   </div>
 
   <footer>Klik salah satu kartu untuk membuka simulatornya.</footer>
+</div></div>
+
+<div id="viewer">
+  <div class="viewer-bar">
+    <button class="back-btn" onclick="safeBack()">&larr; Kembali</button>
+    <span class="viewer-title" id="viewerTitle"></span>
+  </div>
+  <iframe id="frame" title="Simulator gardu induk" src="about:blank"></iframe>
 </div>
+
+<script>
+  function safePush(state){
+    try { history.pushState(state, ''); } catch(err) { /* history API unavailable in this preview context */ }
+  }
+  function safeReplace(state){
+    try { history.replaceState(state, ''); } catch(err) { /* history API unavailable in this preview context */ }
+  }
+  function safeBack(){
+    try {
+      if(history.state && history.state.view === 'sim'){ history.back(); return; }
+    } catch(err) {}
+    showHome();
+  }
+
+  safeReplace({view:'home'});
+
+  function openSim(e, title, src){
+    e.preventDefault();
+    document.getElementById('home').style.display = 'none';
+    document.getElementById('viewer').style.display = 'flex';
+    document.getElementById('frame').src = src;
+    document.getElementById('viewerTitle').textContent = title.toUpperCase();
+    safePush({view:'sim'});
+    return false;
+  }
+
+  function showHome(){
+    document.getElementById('viewer').style.display = 'none';
+    document.getElementById('home').style.display = 'block';
+    document.getElementById('frame').src = 'about:blank';
+  }
+
+  window.addEventListener('popstate', function(ev){
+    if(!ev.state || ev.state.view !== 'sim'){ showHome(); }
+  });
+</script>
 </body>
 </html>
