@@ -85,8 +85,8 @@ function freshDiam(id, a, b){
     pmsBotB:'open', cbBot:'open', pmsBus2:'open'};
 }
 var diameters = [
-  freshDiam('D1', {id:'PB-01',type:'Pembangkit 1',short:'Gen 1',kind:'gen'}, {id:'PB-02',type:'Pembangkit 2',short:'Gen 2',kind:'gen'}),
-  freshDiam('D2', {id:'PH-01',type:'Penghantar 1',short:'Line 1',kind:'line'}, {id:'PH-02',type:'Penghantar 2',short:'Line 2',kind:'line'}),
+  freshDiam('D1', {id:'PH-01',type:'Penghantar 1',short:'Line 1',kind:'line'}, {id:'PB-01',type:'Pembangkit 1',short:'Gen 1',kind:'gen'}),
+  freshDiam('D2', {id:'PH-02',type:'Penghantar 2',short:'Line 2',kind:'line'}, {id:'PB-02',type:'Pembangkit 2',short:'Gen 2',kind:'gen'}),
   freshDiam('D3', {id:'TR-01',type:'Trafo 1',short:'Trafo 1',kind:'trafo',pmtLV:'open'}, {id:'TR-02',type:'Trafo 2',short:'Trafo 2',kind:'trafo',pmtLV:'open'}),
   freshDiam('D4', {id:'CAP-01',type:'Kapasitor',short:'Kap',kind:'cap'}, {id:'SPARE-01',type:'Cadangan',short:'Cadangan',kind:'spare'})
 ];
