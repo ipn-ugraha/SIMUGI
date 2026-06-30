@@ -49,21 +49,21 @@
 <body>
 <div class="wrap">
   <h1>Simulator PMT &amp; PMS — gardu induk double busbar 150/20 kV</h1>
-  <p class="sub">2 bay penghantar, 2 bay trafo, 1 bay kopel, 1 bay kapasitor. Klik simbol PMS (belah ketupat) atau PMT (kotak) untuk mengoperasikan, lengkap dengan interlock dan logger switching.</p>
+  <p class="sub">2 bay pembangkit, 2 bay penghantar, 2 bay trafo, 1 bay kopel, 1 bay kapasitor. Klik simbol PMS (belah ketupat) atau PMT (kotak) untuk mengoperasikan, lengkap dengan interlock dan logger switching.</p>
 
   <div class="panel">
     <div class="panel-head">
       <span class="panel-title">SLD MIMIC — GI DOUBLE BUSBAR 150/20 kV</span>
       <span class="panel-sub" id="summaryTop"></span>
     </div>
-    <svg viewBox="0 0 680 290" id="sld">
+    <svg viewBox="0 0 680 320" id="sld">
       <defs>
         <marker id="arR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
       </defs>
       <line id="busline1" x1="30" y1="40" x2="660" y2="40" stroke-width="4"/>
-      <text x="36" y="28" font-size="12" fill="var(--text-secondary)" class="mono">BUS-1 (150 kV)</text>
+      <text x="36" y="28" font-size="12" fill="var(--text-secondary)" class="mono">BUS-A (150 kV)</text>
       <line id="busline2" x1="30" y1="68" x2="660" y2="68" stroke-width="4"/>
-      <text x="36" y="56" font-size="12" fill="var(--text-secondary)" class="mono">BUS-2 (150 kV)</text>
+      <text x="36" y="56" font-size="12" fill="var(--text-secondary)" class="mono">BUS-B (150 kV)</text>
       <g id="bays"></g>
     </svg>
   </div>
@@ -91,11 +91,12 @@
 (function(){
 var greenC='#1D9E75', redC='#E24B4A';
 var hvOn='#D03A39', lvOn='#8B5A2B', offC='#9C9A92';
+function busLbl(s){ return s===1?'A':'B'; }
 var bays = [
 {id:'PB-01',type:'Pembangkit 1',short:'Gen 1',kind:'gen',pms1:'open',pms2:'open',pmt:'open'},
 {id:'PB-02',type:'Pembangkit 2',short:'Gen 2',kind:'gen',pms1:'open',pms2:'open',pmt:'open'},
-{id:'PH-01',type:'Penghantar 1',short:'Line 1',kind:'line',pms1:'open',pms2:'open',pmt:'open'},
-{id:'PH-02',type:'Penghantar 2',short:'Line 2',kind:'line',pms1:'open',pms2:'open',pmt:'open'},
+{id:'PH-01',type:'Penghantar 1',short:'Line 1',kind:'line',pms1:'open',pms2:'open',pmt:'open',pmsLine:'open'},
+{id:'PH-02',type:'Penghantar 2',short:'Line 2',kind:'line',pms1:'open',pms2:'open',pmt:'open',pmsLine:'open'},
 {id:'TR-01',type:'Trafo 1',short:'Trafo 1',kind:'trafo',pms1:'open',pms2:'open',pmt:'open',pmtLV:'open'},
 {id:'TR-02',type:'Trafo 2',short:'Trafo 2',kind:'trafo',pms1:'open',pms2:'open',pmt:'open',pmtLV:'open'},
 {id:'CAP-01',type:'Kapasitor',short:'Kap',kind:'cap',pms1:'open',pms2:'open',pmt:'open'}
@@ -115,7 +116,11 @@ function bayHtml(b,x){
   var equip='';
   var labelY=240, statusY=256;
   if(b.kind==='line'){
-    equip = '<line id="eqHV-'+b.id+'" x1="'+x+'" y1="186" x2="'+x+'" y2="206" stroke-width="1.5" marker-end="url(#arR)"/>';
+    equip =
+      '<line id="eqLine1-'+b.id+'" x1="'+x+'" y1="186" x2="'+x+'" y2="200" stroke-width="1.5"/>'+
+      '<g data-action="pmsLine" data-bay="'+b.id+'" style="cursor:pointer"><polygon id="pmsLine-'+b.id+'" points="'+x+',193 '+(x+7)+',200 '+x+',207 '+(x-7)+',200" stroke-width="1.5"/></g>'+
+      '<line id="eqLine2-'+b.id+'" x1="'+x+'" y1="207" x2="'+x+'" y2="225" stroke-width="1.5" marker-end="url(#arR)"/>';
+    labelY=242;
   } else if(b.kind==='gen'){
     equip = '<circle id="eqHV-'+b.id+'" cx="'+x+'" cy="196" r="12" fill="none" stroke-width="1.5"/>'+
       '<text x="'+x+'" y="196" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="var(--text-secondary)" id="eqHVtext-'+b.id+'">G</text>';
@@ -159,6 +164,7 @@ function kopelHtml(x){
 
 function bayCard(b){
   var lvRow = b.kind==='trafo' ? '<button data-action="pmtLV" data-bay="'+b.id+'" class="btn-full" id="btnCBLV-'+b.id+'"></button>' : '';
+  var lineRow = b.kind==='line' ? '<button data-action="pmsLine" data-bay="'+b.id+'" class="btn-full" id="btnPL-'+b.id+'"></button>' : '';
   return '<div class="card">'+
     '<div class="card-top"><span class="card-id">'+b.id+'</span><span class="badge" id="badge-'+b.id+'"></span></div>'+
     '<div class="card-type">'+b.type+'</div>'+
@@ -167,12 +173,12 @@ function bayCard(b){
     '<button data-action="pms" data-target="2" data-bay="'+b.id+'" id="btnP2-'+b.id+'"></button>'+
     '</div>'+
     '<button data-action="pmt" data-bay="'+b.id+'" class="btn-full" id="btnCB-'+b.id+'"></button>'+
-    lvRow+'</div>';
+    lineRow+lvRow+'</div>';
 }
 function kopelCard(){
   return '<div class="card">'+
     '<div class="card-top"><span class="card-id">'+kopel.id+'</span><span class="badge" id="badge-'+kopel.id+'"></span></div>'+
-    '<div class="card-type">Kopel bus 1/2</div>'+
+    '<div class="card-type">Kopel Bus-A/B</div>'+
     '<div class="btn-row">'+
     '<button data-action="pms" data-target="1" data-bay="'+kopel.id+'" id="btnP1-'+kopel.id+'"></button>'+
     '<button data-action="pms" data-target="2" data-bay="'+kopel.id+'" id="btnP2-'+kopel.id+'"></button>'+
@@ -243,7 +249,14 @@ function updateBayVisual(b, busE){
   setStub('r', b, 1, b.pms1==='closed', busE[1]);
   setStub('r', b, 2, b.pms2==='closed', busE[2]);
   paint(document.getElementById('riser-'+b.id), b._hv?hvOn:offC);
-  if(b.kind==='line'){ paint(document.getElementById('eqHV-'+b.id), b._hv?hvOn:offC); }
+  if(b.kind==='line'){
+    var lineEnergized = b._hv && b.pmsLine==='closed';
+    paint(document.getElementById('eqLine1-'+b.id), b._hv?hvOn:offC);
+    paint(document.getElementById('eqLine2-'+b.id), lineEnergized?hvOn:offC);
+    var pmsL = document.getElementById('pmsLine-'+b.id);
+    if(b.pmsLine==='closed'){ pmsL.setAttribute('fill', b._hv?hvOn:offC); pmsL.setAttribute('stroke', b._hv?hvOn:offC); }
+    else { pmsL.setAttribute('fill','var(--card)'); pmsL.setAttribute('stroke', offC); }
+  }
   else if(b.kind==='gen'){
     document.getElementById('eqHV-'+b.id).setAttribute('stroke', b._hv?hvOn:offC);
     document.getElementById('eqHVtext-'+b.id).setAttribute('fill', b._hv?hvOn:offC);
@@ -264,12 +277,16 @@ function updateBayVisual(b, busE){
   badge.style.color = closed ? greenC : redC;
   badge.textContent = closed ? 'TERTUTUP' : 'TERBUKA';
   btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
-  btnP1.textContent = 'PMS B1 ' + (b.pms1==='closed'?'tertutup':'terbuka');
-  btnP2.textContent = 'PMS B2 ' + (b.pms2==='closed'?'tertutup':'terbuka');
+  btnP1.textContent = 'PMS BA ' + (b.pms1==='closed'?'tertutup':'terbuka');
+  btnP2.textContent = 'PMS BB ' + (b.pms2==='closed'?'tertutup':'terbuka');
   btnP1.style.background = b.pms1==='closed' ? '#FCEBEB' : '';
   btnP1.style.color = b.pms1==='closed' ? hvOn : '';
   btnP2.style.background = b.pms2==='closed' ? '#FCEBEB' : '';
   btnP2.style.color = b.pms2==='closed' ? hvOn : '';
+  if(b.kind==='line'){
+    var btnPL = document.getElementById('btnPL-'+b.id);
+    if(btnPL) btnPL.textContent = 'PMS Line '+(b.pmsLine==='closed'?'tertutup':'terbuka');
+  }
   if(b.kind==='trafo'){
     var cbLV=document.getElementById('cbLV-'+b.id);
     var closedLV=b.pmtLV==='closed';
@@ -296,8 +313,8 @@ function updateKopelVisual(busE){
   badge.style.color = closed ? greenC : redC;
   badge.textContent = closed ? 'TERTUTUP' : 'TERBUKA';
   btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
-  btnP1.textContent = 'PMS B1 ' + (kopel.pms1==='closed'?'tertutup':'terbuka');
-  btnP2.textContent = 'PMS B2 ' + (kopel.pms2==='closed'?'tertutup':'terbuka');
+  btnP1.textContent = 'PMS BA ' + (kopel.pms1==='closed'?'tertutup':'terbuka');
+  btnP2.textContent = 'PMS BB ' + (kopel.pms2==='closed'?'tertutup':'terbuka');
   btnP1.style.background = kopel.pms1==='closed' ? '#FCEBEB' : '';
   btnP1.style.color = kopel.pms1==='closed' ? hvOn : '';
   btnP2.style.background = kopel.pms2==='closed' ? '#FCEBEB' : '';
@@ -329,20 +346,46 @@ function renderLog(){
 }
 
 function attemptTogglePms(b, side){
-  if(b.pmt==='closed'){
-    log('PMS B'+side+' '+b.id+' ditolak: PMT bay harus terbuka sebelum PMS dioperasikan', false);
-    return;
-  }
   var key='pms'+side, otherSide=(side===1?2:1), otherKey='pms'+otherSide;
   var willClose = b[key]==='open';
+
+  if(b.pmt==='closed'){
+    // PMT masih tertutup: hanya boleh operasi PMS jika busbar sudah diparalel via kopel
+    if(!isBusesParalleled()){
+      log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMT bay masih tertutup dan busbar belum diparalel via kopel. Buka PMT dahulu, atau masukkan kopel untuk manuver busbar.', false);
+      return;
+    }
+    // Busbar sudah diparalel: cek agar bay tidak terisolasi saat membuka PMS
+    if(!willClose && b[otherKey]==='open'){
+      log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMS B'+busLbl(otherSide)+' sudah terbuka. Membuka PMS B'+busLbl(side)+' akan mengisolasi bay dari kedua busbar.', false);
+      return;
+    }
+    // Izinkan: menutup PMS ke busbar baru, atau membuka PMS busbar lama (manuver live)
+    b[key] = willClose ? 'closed' : 'open';
+    log('PMS B'+busLbl(side)+' '+b.id+' '+(willClose?'ditutup':'dibuka')+' — manuver busbar (kopel masuk)', true);
+    render();
+    return;
+  }
+
+  // PMT terbuka: cek interlock ganda PMS (tidak boleh keduanya tertutup tanpa kopel)
   if(willClose && b.id!==kopel.id && b[otherKey]==='closed' && !isBusesParalleled()){
-    log('PMS B'+side+' '+b.id+' ditolak: PMS B'+otherSide+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan Bus-1 dan Bus-2 langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
+    log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMS B'+busLbl(otherSide)+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan Bus-A dan Bus-B langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
     return;
   }
   b[key] = willClose ? 'closed' : 'open';
-  log('PMS B'+side+' '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
+  log('PMS B'+busLbl(side)+' '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
   render();
 }
+function attemptTogglePmsLine(b){
+  if(b.pmt==='closed'){
+    log('PMS Line '+b.id+' ditolak: PMT bay harus terbuka sebelum PMS line dioperasikan', false);
+    return;
+  }
+  b.pmsLine = b.pmsLine==='open' ? 'closed' : 'open';
+  log('PMS Line '+b.id+' '+(b.pmsLine==='closed'?'ditutup':'dibuka'), true);
+  render();
+}
+
 function attemptTogglePMT(b){
   var willClose = b.pmt==='open';
   b.pmt = willClose ? 'closed' : 'open';
@@ -370,6 +413,9 @@ function handle(e){
   if(action==='pms'){
     var target=parseInt(t.getAttribute('data-target'),10);
     attemptTogglePms(b, target);
+  } else if(action==='pmsLine'){
+    var b4=bays.filter(function(x){return x.id===bayId;})[0];
+    if(b4) attemptTogglePmsLine(b4);
   } else if(action==='pmt'){
     attemptTogglePMT(b);
   } else if(action==='pmtLV'){
@@ -378,7 +424,7 @@ function handle(e){
 }
 
 document.getElementById('resetBtn').addEventListener('click', function(){
-  bays.forEach(function(b){ b.pms1='open'; b.pms2='open'; b.pmt='open'; if(b.kind==='trafo'){ b.pmtLV='open'; } });
+  bays.forEach(function(b){ b.pms1='open'; b.pms2='open'; b.pmt='open'; if(b.kind==='trafo'){ b.pmtLV='open'; } if(b.kind==='line'){ b.pmsLine='open'; } });
   kopel.pms1='open'; kopel.pms2='open'; kopel.pmt='open';
   log('Sistem direset ke kondisi normal: semua PMS dan PMT terbuka, tidak bertegangan', true);
   render();
