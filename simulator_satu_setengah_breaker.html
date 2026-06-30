@@ -85,10 +85,10 @@ function freshDiam(id, a, b){
     pmsBotB:'open', cbBot:'open', pmsBus2:'open'};
 }
 var diameters = [
-  freshDiam('D1', {id:'PB-01',type:'Pembangkit 1',kind:'gen'}, {id:'PB-02',type:'Pembangkit 2',kind:'gen'}),
-  freshDiam('D2', {id:'PH-01',type:'Penghantar 1',kind:'line'}, {id:'PH-02',type:'Penghantar 2',kind:'line'}),
-  freshDiam('D3', {id:'TR-01',type:'Trafo 1',kind:'trafo',pmtLV:'open'}, {id:'TR-02',type:'Trafo 2',kind:'trafo',pmtLV:'open'}),
-  freshDiam('D4', {id:'CAP-01',type:'Kapasitor',kind:'cap'}, {id:'SPARE-01',type:'Cadangan',kind:'spare'})
+  freshDiam('D1', {id:'PB-01',type:'Pembangkit 1',short:'Gen 1',kind:'gen'}, {id:'PB-02',type:'Pembangkit 2',short:'Gen 2',kind:'gen'}),
+  freshDiam('D2', {id:'PH-01',type:'Penghantar 1',short:'Line 1',kind:'line'}, {id:'PH-02',type:'Penghantar 2',short:'Line 2',kind:'line'}),
+  freshDiam('D3', {id:'TR-01',type:'Trafo 1',short:'Trafo 1',kind:'trafo',pmtLV:'open'}, {id:'TR-02',type:'Trafo 2',short:'Trafo 2',kind:'trafo',pmtLV:'open'}),
+  freshDiam('D4', {id:'CAP-01',type:'Kapasitor',short:'Kap',kind:'cap'}, {id:'SPARE-01',type:'Cadangan',short:'Cadangan',kind:'spare'})
 ];
 var xs = [100,260,420,570];
 var logs = [];
@@ -150,11 +150,9 @@ function diameterHtml(d, dx){
   html += '<line id="segBus2-'+d.id+'" x1="'+dx+'" y1="260" x2="'+dx+'" y2="320" stroke-width="2"/>';
   html += '<g data-action="pms" data-diam="'+d.id+'" data-which="bus2" style="cursor:pointer">'+pmsHtml(dx,276,'pmsBus2-'+d.id)+'</g>';
   html += eqA.svg;
-  html += '<text x="'+xA+'" y="'+eqA.labelY+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--text)">'+d.circuitA.type+'</text>';
-  html += '<text x="'+xA+'" y="'+eqA.statusY+'" text-anchor="middle" font-size="11" id="status-'+d.circuitA.id+'" fill="var(--text-secondary)"></text>';
+  html += '<text x="'+xA+'" y="'+eqA.labelY+'" text-anchor="middle" font-size="13" font-weight="500" fill="var(--text)">'+d.circuitA.short+'</text>';
   html += eqB.svg;
-  html += '<text x="'+xB+'" y="'+eqB.labelY+'" text-anchor="middle" font-size="14" font-weight="500" fill="var(--text)">'+d.circuitB.type+'</text>';
-  html += '<text x="'+xB+'" y="'+eqB.statusY+'" text-anchor="middle" font-size="11" id="status-'+d.circuitB.id+'" fill="var(--text-secondary)"></text>';
+  html += '<text x="'+xB+'" y="'+eqB.labelY+'" text-anchor="middle" font-size="13" font-weight="500" fill="var(--text)">'+d.circuitB.short+'</text>';
   return html;
 }
 
@@ -228,14 +226,6 @@ function colorCircuit(c){
     var cbLV = document.getElementById('cbLV-'+c.id);
     cbLV.setAttribute('stroke', c.pmtLV==='closed'?lvOn:offC);
     cbLV.setAttribute('fill', c.pmtLV==='closed'?lvOn:'none');
-  }
-  if(c.kind!=='spare'){
-    var s = document.getElementById('status-'+c.id);
-    var txt = c.kind==='trafo' ? ('HV '+(c._hv?'bertegangan':'tidak bertegangan')+' \u00b7 LV CB '+(c.pmtLV==='closed'?'tertutup':'terbuka')+' \u00b7 '+(c._lv?'bertegangan':'tidak bertegangan'))
-                                : (c._hv?'bertegangan':'tidak bertegangan');
-    s.textContent = txt;
-  } else {
-    document.getElementById('status-'+c.id).textContent = 'tidak terpakai';
   }
 }
 
