@@ -212,9 +212,14 @@ function isBusesParalleled(){
 function computeEnergization(){
   var busE = {1:false,2:false};
   bays.forEach(function(b){
-    if((b.kind!=='line' && b.kind!=='gen') || b.pmt!=='closed') return;
-    if(b.pms1==='closed') busE[1]=true;
-    if(b.pms2==='closed') busE[2]=true;
+    if(b.pmt!=='closed') return;
+    if(b.kind==='gen'){
+      if(b.pms1==='closed') busE[1]=true;
+      if(b.pms2==='closed') busE[2]=true;
+    } else if(b.kind==='line' && b.pmsLine==='closed'){
+      if(b.pms1==='closed') busE[1]=true;
+      if(b.pms2==='closed') busE[2]=true;
+    }
   });
   var allBays = bays.concat([kopel]);
   var hasTie = allBays.some(function(b){ return b.pmt==='closed' && b.pms1==='closed' && b.pms2==='closed'; });
@@ -222,8 +227,13 @@ function computeEnergization(){
   bays.forEach(function(b){
     var fed1 = b.pms1==='closed' && busE[1];
     var fed2 = b.pms2==='closed' && busE[2];
-    if(b.kind==='line' || b.kind==='gen'){ b._hv = b.pmt==='closed' && (b.pms1==='closed'||b.pms2==='closed'); }
-    else { b._hv = b.pmt==='closed' && (fed1||fed2); }
+    if(b.kind==='gen'){
+      b._hv = b.pmt==='closed' && (b.pms1==='closed'||b.pms2==='closed');
+    } else if(b.kind==='line'){
+      b._hv = b.pmt==='closed' && b.pmsLine==='closed' && (b.pms1==='closed'||b.pms2==='closed');
+    } else {
+      b._hv = b.pmt==='closed' && (fed1||fed2);
+    }
     if(b.kind==='trafo'){ b._lv = b._hv && b.pmtLV==='closed'; }
   });
   return busE;
@@ -322,11 +332,18 @@ function updateKopelVisual(busE){
 }
 
 function updateSummary(busE){
-  var total = bays.length+1, closedCount=0;
-  bays.forEach(function(b){ if(b.pmt==='closed') closedCount++; if(b.kind==='trafo'){ total++; if(b.pmtLV==='closed') closedCount++; } });
-  if(kopel.pmt==='closed') closedCount++;
+  var totalPMT = bays.length+1, closedPMT=0;
+  bays.forEach(function(b){
+    if(b.pmt==='closed') closedPMT++;
+    if(b.kind==='trafo'){ totalPMT++; if(b.pmtLV==='closed') closedPMT++; }
+  });
+  if(kopel.pmt==='closed') closedPMT++;
+  var lineBays = bays.filter(function(b){ return b.kind==='line'; });
+  var closedPmsLine = lineBays.filter(function(b){ return b.pmsLine==='closed'; }).length;
   var energizedBuses = (busE[1]?1:0)+(busE[2]?1:0);
-  var txt = closedCount+' dari '+total+' PMT tertutup \u00b7 '+energizedBuses+'/2 busbar bertegangan';
+  var txt = closedPMT+' dari '+totalPMT+' PMT tertutup'
+    + (lineBays.length ? ' \u00b7 PMS Line '+closedPmsLine+'/'+lineBays.length : '')
+    + ' \u00b7 '+energizedBuses+'/2 busbar bertegangan';
   document.getElementById('summary').textContent = txt;
   document.getElementById('summaryTop').textContent = txt.toUpperCase();
 }
@@ -388,6 +405,17 @@ function attemptTogglePmsLine(b){
 
 function attemptTogglePMT(b){
   var willClose = b.pmt==='open';
+  if(willClose && b.kind==='line'){
+    var hasBusPms = b.pms1==='closed' || b.pms2==='closed';
+    if(!hasBusPms){
+      log('PMT '+b.id+' ditolak: masukkan minimal satu PMS busbar (Bus-A atau Bus-B) sebelum menutup PMT penghantar.', false);
+      return;
+    }
+    if(b.pmsLine==='open'){
+      log('PMT '+b.id+' ditolak: PMS Line harus tertutup sebelum menutup PMT penghantar.', false);
+      return;
+    }
+  }
   b.pmt = willClose ? 'closed' : 'open';
   log('PMT '+b.id+' '+(willClose?'ditutup':'dibuka'), true);
   render();
