@@ -6,13 +6,18 @@
 <title>Simulator Skema Satu Setengah Breaker — Gardu Induk 150/20 kV</title>
 <style>
   :root{
-    --bg:#F5F4F0; --card:#FFFFFF; --border:#DEDCD3; --border-strong:#C7C4B7;
-    --text:#23221F; --text-secondary:#6B6960; --text-muted:#9A9789;
-    --green:#1D9E75; --red:#E24B4A; --hv:#D03A39; --lv:#8B5A2B; --off:#9C9A92;
-    --bg-success:#E1F5EE; --bg-danger:#FCEBEB; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --bg:#0f1317; --card:#181d24; --border:#252d36; --border-strong:#2e3a47;
+    --text:#e4e2db; --text-secondary:#8c9199; --text-muted:#505760;
+    --green:#1D9E75; --red:#E24B4A; --hv:#D03A39; --lv:#8B5A2B; --off:#4a5158;
+    --bg-success:rgba(29,158,117,0.15); --bg-danger:rgba(226,75,74,0.15);
+    --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;padding:24px;}
+  body{margin:0;background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 100% 28px,
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 28px 100%,
+    var(--bg);
+    color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;padding:24px;}
   .wrap{max-width:760px;margin:0 auto;}
   h1{font-size:18px;font-weight:600;margin:0 0 4px;}
   p.sub{font-size:13px;color:var(--text-secondary);margin:0 0 20px;}
@@ -24,7 +29,7 @@
   text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;}
   .mono{font-family:var(--mono);}
   button{font:inherit;font-size:13px;padding:8px 14px;border-radius:6px;border:0.5px solid var(--border-strong);background:var(--card);color:var(--text);cursor:pointer;}
-  button:hover{background:#F0EFE9;}
+  button:hover{background:#222931;}
   button:active{transform:scale(0.98);}
   .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
   .legend{font-size:12px;color:var(--text-secondary);display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
