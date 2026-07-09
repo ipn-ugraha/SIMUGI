@@ -1126,10 +1126,22 @@ function attemptTogglePMT(b){
 }
 function attemptTogglePMTLV(b){
   var wc=b.pmtLV==='open';
-  if(wc&&!b._hv){log('PMT LV '+b.id+' ditolak: sisi HV trafo belum bertegangan.',false);return;}
+  if(wc&&!b._hv){
+    // Diagnose specifically what's missing
+    var reason='';
+    if(b.pmt==='open') reason='PMT sisi HV (150 kV) belum ditutup.';
+    else if(b.pms1==='open'&&b.pms2==='open') reason='PMS busbar sisi HV belum ditutup.';
+    else reason='Busbar yang terhubung ke trafo ini belum bertegangan (tidak ada sumber aktif).';
+    log('PMT LV '+b.id+' ditolak: trafo belum bertegangan dari sisi HV. '+reason+
+      ' Urutan wajib: PMS busbar HV → PMT HV → PMT LV. PMT LV tidak boleh didahulukan karena berisiko backfeed ke lilitan primer dan memicu inrush current saat HV PMT kemudian ditutup.',false);
+    return;
+  }
+  if(!wc&&b._lv){
+    log('PMT LV '+b.id+' dibuka: distribusi 20 kV terputus.',true,{action:'pmtLV',bayId:b.id,willClose:false});
+  }
   pushUndo();
   b.pmtLV=wc?'closed':'open';
-  log('PMT LV '+b.id+' '+(wc?'ditutup':'dibuka'),true,{action:'pmtLV',bayId:b.id,willClose:wc});
+  log('PMT LV '+b.id+' '+(wc?'ditutup — distribusi 20 kV aktif':'dibuka — distribusi 20 kV terputus'),true,{action:'pmtLV',bayId:b.id,willClose:wc});
   render();
 }
 function attemptToggleEarth(b){
@@ -1244,6 +1256,7 @@ var Exam = {
   startTime: null,
   start: function(sc){
     this.active=true; this.scenario=sc; this.violations=[]; this.correctSteps=0; this.rejected=0;
+    this.currentStep=0;
     this.totalSteps=sc.steps.length; this.startTime=Date.now();
     this.timeLeft=sc.estimatedTime*2;
     sc.initState(); buildDom(); render();
@@ -1267,18 +1280,54 @@ var Exam = {
     el.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
     el.className='exam-timer'+(this.timeLeft<=30?' warning':'');
   },
+  // Helper: convert event to human-readable action description
+  describeAction: function(ev){
+    var b=getBay(ev.bayId);
+    var name=b?(b.type||b.id):ev.bayId;
+    if(ev.action==='pms') return (ev.willClose?'Tutup':'Buka')+' PMS Bus-'+(ev.side===1?'A':'B')+' pada '+name+' ('+ev.bayId+')';
+    if(ev.action==='pmsLine') return (ev.willClose?'Tutup':'Buka')+' PMS Line pada '+name;
+    if(ev.action==='pmt') return (ev.willClose?'Tutup':'Buka')+' PMT sisi HV pada '+name;
+    if(ev.action==='pmtLV') return (ev.willClose?'Tutup':'Buka')+' PMT sisi LV (20 kV) pada '+name;
+    if(ev.action==='earth') return (ev.willClose?'Pasang':'Lepas')+' pentanahan kerja pada '+name;
+    if(ev.action==='ack_alarm') return 'Acknowledge alarm';
+    if(ev.action==='inspect') return 'Pemeriksaan kondisi '+name;
+    return ev.action+' '+ev.bayId;
+  },
+  // Helper: reason why this action is wrong at this step
+  explainMismatch: function(ev, expectedStep){
+    var done=this.describeAction(ev);
+    var should=expectedStep?expectedStep.label:'(semua langkah sudah dieksekusi)';
+    var why=expectedStep&&expectedStep.explanation?expectedStep.explanation:
+      'Urutan operasi tidak sesuai SOP. Setiap langkah harus dikerjakan berurutan.';
+    return {done:done, should:should, why:why};
+  },
   check: function(ev){
     if(!this.active)return;
     var steps=this.scenario.steps;
-    var matched=false;
-    for(var i=0;i<steps.length;i++){
-      if(steps[i].test(ev)){ matched=true; this.correctSteps++; break; }
+    // Track steps in order — each step must be completed before the next
+    if(this.currentStep>=steps.length){
+      if(this.scenario.completionCheck()) this.finish(false);
+      return;
     }
-    if(!matched&&ev.ok!==false){
-      this.violations.push({time:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}), desc:'Aksi tidak sesuai prosedur: '+ev.action+' '+ev.bayId});
+    var curStep=steps[this.currentStep];
+    if(curStep.test(ev)){
+      // Correct action for current step
+      this.currentStep++;
+      this.correctSteps++;
+      document.getElementById('exam-correct').textContent=this.correctSteps;
+      if(this.currentStep>=steps.length||this.scenario.completionCheck()){ this.finish(false); return; }
+    } else if(ev.ok!==false){
+      // Wrong action — record with full detail
+      var info=this.explainMismatch(ev,curStep);
+      this.violations.push({
+        time: new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+        stepNo: this.currentStep+1,
+        done: info.done,
+        should: info.should,
+        why: info.why
+      });
       document.getElementById('exam-violations').textContent=this.violations.length;
     }
-    if(matched) document.getElementById('exam-correct').textContent=this.correctSteps;
     if(this.scenario.completionCheck()) this.finish(false);
   },
   finish: function(timeout){
@@ -1290,36 +1339,48 @@ var Exam = {
     var completed=sc.completionCheck();
     var score=0;
     if(completed){
-      score=Math.round(100 - this.violations.length*10 - Math.max(0,(elapsed-sc.estimatedTime))*0.5);
-      score=Math.max(0,Math.min(100,score));
+      var penaltyViolation=this.violations.length*10;
+      var penaltyTime=Math.max(0,(elapsed-sc.estimatedTime)*0.3);
+      score=Math.max(0,Math.min(100,Math.round(100-penaltyViolation-penaltyTime)));
     }
     var pass=score>=70;
-    // Save result
     var result={operator:App.operator, scenario:sc.id, scenarioTitle:sc.title, score:score, time:elapsed,
-      violations:this.violations.length, pass:pass, date:new Date().toLocaleString('id-ID')};
+      violations:this.violations.length, pass:pass, date:new Date().toLocaleString('id-ID'),
+      correctSteps:this.correctSteps, totalSteps:sc.steps.length};
     Profile.saveResult(result);
-    log('Ujian selesai. Skor: '+score+'/100',pass);
+    log('Ujian selesai. Skor: '+score+'/100 · '+(pass?'LULUS':'TIDAK LULUS'),pass);
     this.showResult(result, elapsed, timeout);
   },
   showResult: function(result, elapsed, timeout){
-    var sc=this.scenario;
+    var sc=this.scenario, self=this;
     var color=result.score>=70?greenC:redC;
-    var html='<div class="result-score" style="background:'+(result.score>=70?'rgba(29,158,117,.15)':'rgba(226,75,74,.15)');
-    html+=';color:'+color+'">'+result.score+'<span style="font-size:16px">/100</span></div>';
+    var html='<div class="result-score" style="background:'+(result.score>=70?'rgba(29,158,117,.15)':'rgba(226,75,74,.15)')+';color:'+color+'">'+
+      result.score+'<span style="font-size:16px">/100</span></div>';
     html+='<div class="result-row"><span>Status</span><span style="color:'+color+';font-weight:600">'+(result.pass?'✓ LULUS':'✗ TIDAK LULUS')+'</span></div>';
     html+='<div class="result-row"><span>Skenario</span><span>'+sc.title+'</span></div>';
-    html+='<div class="result-row"><span>Waktu</span><span>'+formatTime(elapsed)+' (batas '+formatTime(sc.estimatedTime*2)+')</span></div>';
-    html+='<div class="result-row"><span>Langkah benar</span><span style="color:'+greenC+'">'+result.violations+'  pelanggaran dari '+sc.steps.length+' langkah</span></div>';
+    html+='<div class="result-row"><span>Waktu</span><span>'+formatTime(elapsed)+' (estimasi '+formatTime(sc.estimatedTime)+')</span></div>';
+    html+='<div class="result-row"><span>Langkah benar / total</span><span style="color:'+greenC+'">'+result.correctSteps+' / '+result.totalSteps+'</span></div>';
+    html+='<div class="result-row"><span>Pelanggaran urutan</span><span style="color:'+(result.violations>0?redC:greenC)+'">'+result.violations+'</span></div>';
+    // Violation detail
     if(this.violations.length>0){
-      html+='<div style="margin-top:12px;padding:10px;background:rgba(226,75,74,.1);border-radius:8px;font-size:12px">';
-      html+='<div style="font-weight:600;margin-bottom:6px;color:var(--red)">Daftar pelanggaran:</div>';
-      this.violations.forEach(function(v){ html+='<div style="color:#8b949e;margin-bottom:4px">'+v.time+' — '+v.desc+'</div>'; });
+      html+='<div style="margin-top:14px"><div style="font-size:12px;font-weight:600;color:'+redC+';margin-bottom:8px">📋 Rincian pelanggaran & koreksi:</div>';
+      this.violations.forEach(function(v,i){
+        html+='<div style="margin-bottom:10px;padding:10px 12px;background:rgba(226,75,74,.08);border:0.5px solid rgba(226,75,74,.2);border-radius:8px;font-size:12px">'+
+          '<div style="font-family:monospace;font-size:10px;color:#484f58;margin-bottom:4px">'+v.time+' — Langkah ke-'+v.stepNo+'</div>'+
+          '<div style="margin-bottom:3px"><span style="color:#484f58">Yang dilakukan: </span><span style="color:#e6edf3;font-weight:500">'+v.done+'</span></div>'+
+          '<div style="margin-bottom:3px"><span style="color:#484f58">Seharusnya: </span><span style="color:'+greenC+';font-weight:500">'+v.should+'</span></div>'+
+          '<div style="color:#8b949e;font-size:11px;margin-top:5px;padding-top:5px;border-top:0.5px solid rgba(255,255,255,.06)">ℹ '+v.why+'</div>'+
+          '</div>';
+      });
       html+='</div>';
+    } else {
+      html+='<div style="margin-top:12px;padding:10px 12px;background:rgba(29,158,117,.1);border:0.5px solid rgba(29,158,117,.2);border-radius:8px;font-size:12px;color:'+greenC+'">✓ Tidak ada pelanggaran urutan prosedur.</div>';
     }
-    if(timeout) html+='<div style="margin-top:10px;color:var(--red);font-size:12px">⚠ Waktu habis.</div>';
+    if(!sc.completionCheck()) html+='<div style="margin-top:10px;padding:8px 12px;background:rgba(226,75,74,.1);border-radius:8px;font-size:12px;color:'+redC+'">⚠ Tugas tidak diselesaikan'+( timeout?' (waktu habis).':'.')+'</div>';
     document.getElementById('result-content').innerHTML=html;
     openModal('modal-result');
-  }
+  },
+  currentStep: 0
 };
 
 // ============================================================
