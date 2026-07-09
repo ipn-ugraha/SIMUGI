@@ -729,9 +729,10 @@ var SCENARIOS = [
        test:function(ev){return ev.action==='ack_alarm';},
        explanation:'Langkah pertama normalisasi adalah acknowledge alarm untuk menandai bahwa gangguan sudah diketahui operator.'},
       {no:2,label:'Periksa kondisi (simulasi)',
-       hint:'Klik tombol "Periksa Trafo 1" yang muncul di sidebar.',
+       hint:'Klik tombol "🔍 Periksa Trafo 1" yang muncul di kartu bay Trafo 1 pada panel kartu bawah.',
+       highlight:{bayId:'TR-01', type:'inspect'},
        test:function(ev){return ev.action==='inspect'&&ev.bayId==='TR-01';},
-       explanation:'Pemeriksaan visual dan proteksi harus dilakukan sebelum reklosing.'},
+       explanation:'Pemeriksaan visual dan proteksi harus dilakukan sebelum reklosing. Pastikan tidak ada tanda kerusakan fisik, relay proteksi sudah reset, dan aman untuk dimasukkan kembali.'},
       {no:3,label:'Tutup PMT TR-01',
        hint:'Klik kotak PMT pada bay Trafo 1.',
        test:function(ev){return ev.action==='pmt'&&ev.bayId==='TR-01'&&ev.willClose;},
@@ -871,7 +872,9 @@ function bayCard(b){
   var lvRow=b.kind==='trafo'?'<button class="bay-btn btn-full" data-action="pmtLV" data-bay="'+b.id+'" id="btnCBLV-'+b.id+'"></button>':'';
   var lineRow=b.kind==='line'?'<button class="bay-btn btn-full" data-action="pmsLine" data-bay="'+b.id+'" id="btnPL-'+b.id+'"></button>':'';
   var earthRow=(b.kind==='line'||b.kind==='gen')?'<button class="bay-btn btn-full" data-action="earth" data-bay="'+b.id+'" id="btnEarth-'+b.id+'"></button>':'';
-  var inspBtn=(App.mode==='train'&&Training.active)?'<button class="bay-btn btn-full" data-action="inspect" data-bay="'+b.id+'" id="btnInspect-'+b.id+'" style="display:none">🔍 Periksa '+b.short+'</button>':'';
+  var inspBtn=(b.kind==='trafo'||b.kind==='gen')?
+    '<button class="bay-btn btn-full" data-action="inspect" data-bay="'+b.id+'" id="btnInspect-'+b.id+'" '+
+    'style="border-color:rgba(88,166,255,.3);color:#58a6ff">🔍 Periksa '+b.short+'</button>':'';
   return '<div class="bay-card" id="card-'+b.id+'">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
     '<span class="bay-id">'+b.id+'</span><span class="badge" id="badge-'+b.id+'"></span></div>'+
@@ -1476,17 +1479,15 @@ function checkSystemStatus(){
 // SECTION 10: HIGHLIGHTS & VISUAL
 // ============================================================
 function updateHighlights(){
-  // Remove all highlights
   document.querySelectorAll('.bay-card').forEach(function(c){c.classList.remove('highlighted');});
-  if(!Training.active||!Training.scenario)return;
-  var step=Training.scenario.steps[Training.currentStep]; if(!step||!step.highlight)return;
+  // Get current active step from training or exam
+  var step=null;
+  if(Training.active&&Training.scenario) step=Training.scenario.steps[Training.currentStep];
+  else if(Exam.active&&Exam.scenario) step=Exam.scenario.steps[Exam.currentStep];
+  if(!step||!step.highlight)return;
   var h=step.highlight;
   var card=document.getElementById('card-'+h.bayId);
   if(card) card.classList.add('highlighted');
-  // Show inspect button if needed
-  if(h.type==='inspect'){
-    var ib=document.getElementById('btnInspect-'+h.bayId); if(ib)ib.style.display='block';
-  }
 }
 
 // ============================================================
@@ -1686,7 +1687,34 @@ function handleAction(e){
   } else if(action==='earth'){
     attemptToggleEarth(b);
   } else if(action==='inspect'){
-    log('Pemeriksaan '+bayId+' dilakukan — kondisi normal, aman untuk dioperasikan.',true,{action:'inspect',bayId:bayId,willClose:false,ok:true});
+    // Show inspection popup with bay status detail
+    var bInsp=getBay(bayId);
+    if(bInsp){
+      var statusItems=[];
+      var overall='AMAN';
+      var overallColor=greenC;
+      if(bInsp.fault){overall='FAULT TERDETEKSI';overallColor=redC;}
+      else if(bInsp.earth){overall='DALAM PENTANAHAN';overallColor=earthC;}
+      statusItems.push({label:'Status PMT HV',val:bInsp.pmt==='closed'?'Tertutup':'Terbuka (trip/buka)',color:bInsp.pmt==='open'?'#e3b341':'#8b949e'});
+      if(bInsp.kind==='trafo') statusItems.push({label:'Status PMT LV',val:bInsp.pmtLV==='closed'?'Tertutup':'Terbuka',color:'#8b949e'});
+      statusItems.push({label:'Proteksi relai',val:bInsp.fault?'FAULT — relai belum reset':'Normal — tidak ada operasi proteksi',color:bInsp.fault?redC:greenC});
+      statusItems.push({label:'Kondisi fisik (simulasi)',val:'Normal — tidak ada tanda kerusakan visual',color:greenC});
+      statusItems.push({label:'Suhu (simulasi)',val:bInsp._hv?'68°C (dalam batas normal)':'Dingin — tidak beroperasi',color:'#8b949e'});
+      if(bInsp.kind==='trafo') statusItems.push({label:'Oli trafo (simulasi)',val:'Level normal, tidak ada kebocoran',color:greenC});
+      statusItems.push({label:'Kesimpulan',val:bInsp.fault?'TIDAK AMAN — selesaikan reset proteksi dahulu':bInsp.earth?'DALAM PEMELIHARAAN — pentanahan kerja terpasang':'Aman untuk dioperasikan',color:overallColor});
+      var html='<div style="text-align:center;padding:12px 0 16px;border-bottom:0.5px solid var(--border);margin-bottom:14px">'+
+        '<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;font-family:monospace">HASIL PEMERIKSAAN '+bInsp.id+'</div>'+
+        '<div style="font-size:20px;font-weight:700;color:'+overallColor+'">'+overall+'</div></div>';
+      statusItems.forEach(function(s){
+        html+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12px">'+
+          '<span style="color:var(--text-secondary)">'+s.label+'</span>'+
+          '<span style="color:'+s.color+';font-weight:500;text-align:right;max-width:200px">'+s.val+'</span></div>';
+      });
+      document.getElementById('status-content').innerHTML=html;
+      openModal('modal-status');
+      // Dispatch inspect event for training/exam validation
+      log('Pemeriksaan '+bayId+' selesai — '+overall.toLowerCase()+'.',true,{action:'inspect',bayId:bayId,willClose:false,ok:true});
+    }
   }
 }
 
