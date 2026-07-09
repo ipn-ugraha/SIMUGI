@@ -1674,13 +1674,10 @@ var Training = {
   start: function(sc){
     this.active=true; this.scenario=sc; this.currentStep=0; this.errors=0; this.wrongActions=0;
     this.startTime=Date.now();
-    sc.initState(); buildDom(); render();
+    sc.initState();
+    if(simType==='double'){ buildDom(); render(); }
+    else { buildBreaker15Dom(); renderBreaker15(); }
     this.renderPanel();
-    log('Latihan dimulai: '+sc.title,true);
-  },
-  check: function(ev){
-    if(!this.active||!this.scenario)return;
-    var steps=this.scenario.steps;
     if(this.currentStep>=steps.length)return;
     var step=steps[this.currentStep];
     if(step.test(ev)){
@@ -1764,7 +1761,9 @@ var Exam = {
     this.currentStep=0;
     this.totalSteps=sc.steps.length; this.startTime=Date.now();
     this.timeLeft=sc.estimatedTime*2;
-    sc.initState(); buildDom(); render();
+    sc.initState();
+    if(simType==='double'){ buildDom(); render(); }
+    else { buildBreaker15Dom(); renderBreaker15(); }
     var self=this;
     this.timerInterval=setInterval(function(){
       self.timeLeft--;
@@ -1950,12 +1949,18 @@ function triggerFaultModal(){
 }
 
 function randomizeScenario(){
-  resetAllSim();
-  // Randomly put some bays in service
-  var ph1=getBay('PH-01'); ph1.pmsLine='closed'; ph1.pms1='closed'; ph1.pmt='closed';
-  if(Math.random()>0.5){var tr1=getBay('TR-01'); tr1.pms1='closed'; tr1.pmt='closed'; tr1.pmtLV='closed';}
-  if(Math.random()>0.5){var ph2=getBay('PH-02'); ph2.pmsLine='closed'; ph2.pms2='closed'; ph2.pmt='closed';}
-  buildDom(); render();
+  if(simType==='breaker15'){
+    resetBreaker15();
+    var d1=getDiam('D1'); d1.pmsBus1='closed'; d1.cbTop='closed'; d1.pmsTopA='closed';
+    if(Math.random()>0.5){var d3=getDiam('D3'); d3.pmsBus1='closed'; d3.cbTop='closed'; d3.pmsTopA='closed'; d3.circuitA.pmtLV='closed';}
+    buildBreaker15Dom(); renderBreaker15();
+  } else {
+    resetAllSim();
+    var ph1=getBay('PH-01'); ph1.pmsLine='closed'; ph1.pms1='closed'; ph1.pmt='closed';
+    if(Math.random()>0.5){var tr1=getBay('TR-01'); tr1.pms1='closed'; tr1.pmt='closed'; tr1.pmtLV='closed';}
+    if(Math.random()>0.5){var ph2=getBay('PH-02'); ph2.pmsLine='closed'; ph2.pms2='closed'; ph2.pmt='closed';}
+    buildDom(); render();
+  }
   log('Kondisi sistem diacak.',true);
 }
 
@@ -2040,7 +2045,8 @@ function saveConfig(){
   BAY_DEFAULTS.forEach(function(d){ var inp=document.getElementById('cfg-'+d.id); if(inp)Config.bayNames[d.id]=inp.value; });
   Config.save();
   bays=BAY_DEFAULTS.map(makeBay); kopel=makeKopel();
-  buildDom(); render();
+  if(simType==='double'){ buildDom(); render(); }
+  else { buildBreaker15Dom(); renderBreaker15(); }
   closeModal('modal-config');
 }
 
