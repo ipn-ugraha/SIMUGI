@@ -1152,10 +1152,14 @@ function bayHtml(b,x){
     labelY=272;
   }
   return '<g id="bay-g-'+b.id+'" data-bay="'+b.id+'">'+
-    '<line id="r1-'+b.id+'" x1="'+x+'" y1="40" x2="'+x+'" y2="100" stroke-width="2.5"/>'+
-    '<line id="r2-'+b.id+'" x1="'+x+'" y1="68" x2="'+x+'" y2="100" stroke-width="2.5"/>'+
-    '<g data-action="pms" data-target="1" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x,55,b.id,1)+'</g>'+
-    '<g data-action="pms" data-target="2" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x,83,b.id,2)+'</g>'+
+    '<line id="r1a-'+b.id+'" x1="'+(x-14)+'" y1="40" x2="'+(x-14)+'" y2="69" stroke-width="2.5"/>'+
+    '<line id="r1b-'+b.id+'" x1="'+(x-14)+'" y1="83" x2="'+(x-14)+'" y2="92" stroke-width="2.5"/>'+
+    '<line id="r2a-'+b.id+'" x1="'+(x+14)+'" y1="68" x2="'+(x+14)+'" y2="69" stroke-width="2.5"/>'+
+    '<line id="r2b-'+b.id+'" x1="'+(x+14)+'" y1="83" x2="'+(x+14)+'" y2="92" stroke-width="2.5"/>'+
+    '<line id="rt-'+b.id+'" x1="'+(x-14)+'" y1="92" x2="'+(x+14)+'" y2="92" stroke-width="2.5"/>'+
+    '<line id="rstem-'+b.id+'" x1="'+x+'" y1="92" x2="'+x+'" y2="100" stroke-width="2.5"/>'+
+    '<g data-action="pms" data-target="1" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x-14,76,b.id,1)+'</g>'+
+    '<g data-action="pms" data-target="2" data-bay="'+b.id+'" style="cursor:pointer">'+pmsHtml(x+14,76,b.id,2)+'</g>'+
     '<rect id="cb-'+b.id+'" data-action="pmt" data-bay="'+b.id+'" x="'+(x-11)+'" y="100" width="22" height="26" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
     '<text x="'+x+'" y="138" text-anchor="middle" fill="#484f58" font-size="10" style="font-family:monospace">'+b.id+'</text>'+
     '<line id="riser-'+b.id+'" x1="'+x+'" y1="126" x2="'+x+'" y2="186" stroke-width="2"/>'+
@@ -1164,16 +1168,18 @@ function bayHtml(b,x){
     '</g>';
 }
 function kopelHtml(x){
+  var lx=x-45, rx=x+45, hy=113;
   return '<g id="bay-g-'+kopel.id+'" data-bay="'+kopel.id+'">'+
-    '<line id="r1-'+kopel.id+'" x1="'+x+'" y1="40" x2="'+x+'" y2="50" stroke-width="2.5"/>'+
-    '<g data-action="pms" data-target="1" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(x,55,kopel.id,1)+'</g>'+
-    '<line x1="'+x+'" y1="60" x2="'+x+'" y2="64" stroke="#4a5158" stroke-width="2"/>'+
-    '<rect id="cb-'+kopel.id+'" data-action="pmt" data-bay="'+kopel.id+'" x="'+(x-11)+'" y="64" width="22" height="20" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
-    '<line x1="'+x+'" y1="84" x2="'+x+'" y2="89" stroke="#4a5158" stroke-width="2"/>'+
-    '<g data-action="pms" data-target="2" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(x,95,kopel.id,2)+'</g>'+
-    '<line id="r2-'+kopel.id+'" x1="'+x+'" y1="100" x2="'+(x-40)+'" y2="100" stroke-width="2.5"/>'+
-    '<line x1="'+(x-40)+'" y1="100" x2="'+(x-40)+'" y2="68" stroke-width="2.5" id="r2b-'+kopel.id+'"/>'+
-    '<text x="'+x+'" y="128" text-anchor="middle" font-size="12" font-weight="500" fill="#e6edf3">Kopel</text>'+
+    '<line id="r1a-'+kopel.id+'" x1="'+lx+'" y1="40" x2="'+lx+'" y2="75" stroke-width="2.5"/>'+
+    '<line id="r1b-'+kopel.id+'" x1="'+lx+'" y1="89" x2="'+lx+'" y2="'+hy+'" stroke-width="2.5"/>'+
+    '<line id="r2a-'+kopel.id+'" x1="'+rx+'" y1="68" x2="'+rx+'" y2="89" stroke-width="2.5"/>'+
+    '<line id="r2b-'+kopel.id+'" x1="'+rx+'" y1="103" x2="'+rx+'" y2="'+hy+'" stroke-width="2.5"/>'+
+    '<line id="r1h-'+kopel.id+'" x1="'+lx+'" y1="'+hy+'" x2="'+(x-11)+'" y2="'+hy+'" stroke-width="2.5"/>'+
+    '<line id="r2h-'+kopel.id+'" x1="'+(x+11)+'" y1="'+hy+'" x2="'+rx+'" y2="'+hy+'" stroke-width="2.5"/>'+
+    '<g data-action="pms" data-target="1" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(lx,82,kopel.id,1)+'</g>'+
+    '<g data-action="pms" data-target="2" data-bay="'+kopel.id+'" style="cursor:pointer">'+pmsHtml(rx,96,kopel.id,2)+'</g>'+
+    '<rect id="cb-'+kopel.id+'" data-action="pmt" data-bay="'+kopel.id+'" x="'+(x-11)+'" y="100" width="22" height="26" rx="3" fill="none" stroke-width="1.5" style="cursor:pointer;pointer-events:all"/>'+
+    '<text x="'+x+'" y="146" text-anchor="middle" font-size="12" font-weight="500" fill="#e6edf3">Kopel</text>'+
     '</g>';
 }
 
@@ -1268,6 +1274,23 @@ function setStub(pfx,bay,side,closed,energized){
     p.setAttribute('fill',r.style?'#161b22':''); p.setAttribute('stroke',offC); }
 }
 
+// Two-segment PMS stub: bus-side (idA) colored by bus energization alone,
+// PMT-side (idB) colored only when PMS is closed AND bus energized (current actually flows through).
+function setStub2(idA,idB,pmsId,busLive,pmsClosed){
+  var a=document.getElementById(idA), b=document.getElementById(idB), p=document.getElementById(pmsId);
+  if(a) paintLine(a,busLive?hvOn:offC,busLive);
+  var downstreamLive = pmsClosed && busLive;
+  if(b){
+    if(pmsClosed){ paintLine(b,downstreamLive?hvOn:offC,downstreamLive); b.removeAttribute('stroke-dasharray'); }
+    else { b.setAttribute('stroke',offC); b.setAttribute('stroke-dasharray','3,3'); b.style.animation=''; }
+  }
+  if(p){
+    if(pmsClosed){ paint(p,downstreamLive?hvOn:offC); }
+    else { p.setAttribute('fill','#161b22'); p.setAttribute('stroke',offC); }
+  }
+  return downstreamLive;
+}
+
 function render(){
   var busE=computeEnergization();
   var bl1=document.getElementById('busline1'), bl2=document.getElementById('busline2');
@@ -1284,8 +1307,12 @@ function render(){
 }
 
 function updateBayVisual(b,busE){
-  setStub('r',b,1,b.pms1==='closed',busE[1]);
-  setStub('r',b,2,b.pms2==='closed',busE[2]);
+  var live1 = setStub2('r1a-'+b.id,'r1b-'+b.id,'pms1-'+b.id,busE[1],b.pms1==='closed');
+  var live2 = setStub2('r2a-'+b.id,'r2b-'+b.id,'pms2-'+b.id,busE[2],b.pms2==='closed');
+  var upperLive = live1 || live2;
+  var rt=document.getElementById('rt-'+b.id), rstem=document.getElementById('rstem-'+b.id);
+  if(rt) paintLine(rt,upperLive?hvOn:offC,upperLive);
+  if(rstem) paintLine(rstem,upperLive?hvOn:offC,upperLive);
   var riser=document.getElementById('riser-'+b.id);
   if(riser) paintLine(riser,b._hv?hvOn:offC,b._hv);
   // Equipment
@@ -1343,10 +1370,11 @@ function updateBayVisual(b,busE){
 }
 
 function updateKopelVisual(busE){
-  setStub('r',kopel,1,kopel.pms1==='closed',busE[1]);
-  var r2=document.getElementById('r2-'+kopel.id), r2b=document.getElementById('r2b-'+kopel.id), p2=document.getElementById('pms2-'+kopel.id);
-  if(kopel.pms2==='closed'){ paintLine(r2,busE[2]?hvOn:offC,busE[2]); if(r2)r2.removeAttribute('stroke-dasharray'); paintLine(r2b,busE[2]?hvOn:offC,busE[2]); if(r2b)r2b.removeAttribute('stroke-dasharray'); paint(p2,busE[2]?hvOn:offC); }
-  else { if(r2){r2.setAttribute('stroke',offC);r2.setAttribute('stroke-dasharray','3,3');r2.style.animation='';} if(r2b){r2b.setAttribute('stroke',offC);r2b.setAttribute('stroke-dasharray','3,3');r2b.style.animation='';} if(p2){p2.setAttribute('fill','#161b22');p2.setAttribute('stroke',offC);} }
+  var leftLive = setStub2('r1a-'+kopel.id,'r1b-'+kopel.id,'pms1-'+kopel.id,busE[1],kopel.pms1==='closed');
+  var rightLive = setStub2('r2a-'+kopel.id,'r2b-'+kopel.id,'pms2-'+kopel.id,busE[2],kopel.pms2==='closed');
+  var r1h=document.getElementById('r1h-'+kopel.id), r2h=document.getElementById('r2h-'+kopel.id);
+  if(r1h) paintLine(r1h,leftLive?hvOn:offC,leftLive);
+  if(r2h) paintLine(r2h,rightLive?hvOn:offC,rightLive);
   var cb=document.getElementById('cb-'+kopel.id);
   if(cb){cb.setAttribute('stroke',kopel.pmt==='closed'?hvOn:offC);cb.setAttribute('fill',kopel.pmt==='closed'?hvOn:'none');}
   var bdg=document.getElementById('badge-'+kopel.id);
