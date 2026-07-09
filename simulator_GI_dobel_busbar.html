@@ -6,13 +6,17 @@
 <title>Simulator PMT &amp; PMS — Gardu Induk Double Busbar 150/20 kV</title>
 <style>
   :root{
-    --bg:#F5F4F0; --card:#FFFFFF; --border:#DEDCD3; --border-strong:#C7C4B7;
-    --text:#23221F; --text-secondary:#6B6960; --text-muted:#9A9789;
-    --green:#1D9E75; --red:#E24B4A; --hv:#D03A39; --lv:#8B5A2B; --off:#9C9A92;
-    --bg-success:#E1F5EE; --bg-danger:#FCEBEB; --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
+    --bg:#0f1317; --card:#181d24; --border:#252d36; --border-strong:#2e3a47;
+    --text:#e4e2db; --text-secondary:#8c9199; --text-muted:#505760;
+    --green:#1D9E75; --red:#E24B4A; --hv:#D03A39; --lv:#8B5A2B; --off:#4a5158;
+    --bg-success:rgba(29,158,117,0.15); --bg-danger:rgba(226,75,74,0.15); --mono:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
   }
   *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;padding:24px;}
+  body{margin:0;background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 100% 28px,
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px) 0 0 / 28px 100%,
+    var(--bg);
+    color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;padding:24px;}
   .wrap{max-width:760px;margin:0 auto;}
   h1{font-size:18px;font-weight:600;margin:0 0 4px;}
   p.sub{font-size:13px;color:var(--text-secondary);margin:0 0 20px;}
@@ -31,7 +35,7 @@
   .card-type{font-size:13px;margin-bottom:8px;}
   .btn-row{display:flex;gap:6px;}
   button{font:inherit;font-size:12px;padding:6px 0;border-radius:6px;border:0.5px solid var(--border-strong);background:var(--card);color:var(--text);cursor:pointer;flex:1;}
-  button:hover{background:#F0EFE9;}
+  button:hover{background:#222931;}
   button:active{transform:scale(0.98);}
   .btn-full{width:100%;margin-top:6px;}
   .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px;}
@@ -289,10 +293,10 @@ function updateBayVisual(b, busE){
   btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
   btnP1.textContent = 'PMS BA ' + (b.pms1==='closed'?'tertutup':'terbuka');
   btnP2.textContent = 'PMS BB ' + (b.pms2==='closed'?'tertutup':'terbuka');
-  btnP1.style.background = b.pms1==='closed' ? '#FCEBEB' : '';
-  btnP1.style.color = b.pms1==='closed' ? hvOn : '';
-  btnP2.style.background = b.pms2==='closed' ? '#FCEBEB' : '';
-  btnP2.style.color = b.pms2==='closed' ? hvOn : '';
+  btnP1.style.background = b.pms1==='closed' ? 'rgba(209,58,57,0.18)' : '';
+  btnP1.style.color = b.pms1==='closed' ? '#ff7a77' : '';
+  btnP2.style.background = b.pms2==='closed' ? 'rgba(209,58,57,0.18)' : '';
+  btnP2.style.color = b.pms2==='closed' ? '#ff7a77' : '';
   if(b.kind==='line'){
     var btnPL = document.getElementById('btnPL-'+b.id);
     if(btnPL) btnPL.textContent = 'PMS Line '+(b.pmsLine==='closed'?'tertutup':'terbuka');
@@ -325,10 +329,10 @@ function updateKopelVisual(busE){
   btnCB.textContent = closed ? 'Buka PMT' : 'Tutup PMT';
   btnP1.textContent = 'PMS BA ' + (kopel.pms1==='closed'?'tertutup':'terbuka');
   btnP2.textContent = 'PMS BB ' + (kopel.pms2==='closed'?'tertutup':'terbuka');
-  btnP1.style.background = kopel.pms1==='closed' ? '#FCEBEB' : '';
-  btnP1.style.color = kopel.pms1==='closed' ? hvOn : '';
-  btnP2.style.background = kopel.pms2==='closed' ? '#FCEBEB' : '';
-  btnP2.style.color = kopel.pms2==='closed' ? hvOn : '';
+  btnP1.style.background = kopel.pms1==='closed' ? 'rgba(209,58,57,0.18)' : '';
+  btnP1.style.color = kopel.pms1==='closed' ? '#ff7a77' : '';
+  btnP2.style.background = kopel.pms2==='closed' ? 'rgba(209,58,57,0.18)' : '';
+  btnP2.style.color = kopel.pms2==='closed' ? '#ff7a77' : '';
 }
 
 function updateSummary(busE){
@@ -367,7 +371,12 @@ function attemptTogglePms(b, side){
   var willClose = b[key]==='open';
 
   if(b.pmt==='closed'){
-    // PMT masih tertutup: hanya boleh operasi PMS jika busbar sudah diparalel via kopel
+    // Bay kopel: PMT kopel tertutup → PMS kopel tidak boleh dioperasikan dalam kondisi apapun
+    if(b.id===kopel.id){
+      log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMT kopel harus dibuka terlebih dahulu sebelum PMS kopel dioperasikan.', false);
+      return;
+    }
+    // Bay biasa: boleh operasi PMS jika busbar sudah diparalel via kopel (manuver live)
     if(!isBusesParalleled()){
       log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMT bay masih tertutup dan busbar belum diparalel via kopel. Buka PMT dahulu, atau masukkan kopel untuk manuver busbar.', false);
       return;
@@ -385,6 +394,7 @@ function attemptTogglePms(b, side){
   }
 
   // PMT terbuka: cek interlock ganda PMS (tidak boleh keduanya tertutup tanpa kopel)
+  // Pengecualian: kopel boleh menutup kedua PMS saat PMT terbuka (persiapan paralel)
   if(willClose && b.id!==kopel.id && b[otherKey]==='closed' && !isBusesParalleled()){
     log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMS B'+busLbl(otherSide)+' masih tertutup. Menutup kedua PMS sekaligus akan menyatukan Bus-A dan Bus-B langsung tanpa melalui PMT kopel. Paralelkan busbar lewat kopel terlebih dahulu.', false);
     return;
