@@ -639,7 +639,7 @@ var SCENARIOS = [
   {
     id:'S03', category:'Manuver', difficulty:'Menengah',
     title:'Manuver Bus Transfer: Penghantar 1 Bus-A ke Bus-B',
-    desc:'PH-01 sedang beroperasi di Bus-A. Pindahkan ke Bus-B melalui kopel tanpa pemadaman (live bus transfer).',
+    desc:'PH-01 sedang beroperasi di Bus-A. Pindahkan ke Bus-B melalui kopel tanpa pemadaman (live bus transfer). Urutan wajib: masuk kopel (PMS BA → PMS BB → PMT), lakukan transfer, lepas kopel (PMT → PMS BB → PMS BA).',
     estimatedTime:300,
     initState: function(){
       resetAllSim();
@@ -648,37 +648,49 @@ var SCENARIOS = [
     steps:[
       {no:1,label:'Tutup PMS BA KOP-01',
        hint:'Klik PMS BA (atas) pada bay Kopel.',
-       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===1&&ev.willClose;}},
-      {no:2,label:'Tutup PMT KOP-01',
-       hint:'Klik kotak PMT pada bay Kopel.',
-       test:function(ev){return ev.action==='pmt'&&ev.bayId==='KOP-01'&&ev.willClose;}},
-      {no:3,label:'Tutup PMS BB KOP-01',
-       hint:'Klik PMS BB (bawah) pada bay Kopel. Busbar kini diparalel.',
+       highlight:{bayId:'KOP-01',type:'pms'},
+       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===1&&ev.willClose;},
+       explanation:'PMS BA kopel harus ditutup pertama saat PMT masih terbuka (PMS tidak boleh dioperasikan saat PMT tertutup).'},
+      {no:2,label:'Tutup PMS BB KOP-01',
+       hint:'Klik PMS BB (bawah) pada bay Kopel. PMT kopel masih terbuka — aman untuk operasi PMS.',
+       highlight:{bayId:'KOP-01',type:'pms'},
        test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===2&&ev.willClose;},
-       explanation:'Dengan kedua PMS kopel tertutup dan PMT kopel tertutup, Bus-A dan Bus-B kini diparalel satu potensial.'},
+       explanation:'Kedua PMS kopel harus ditutup SEBELUM PMT. Prinsip: disconnector (PMS) tidak boleh dioperasikan saat breaker (PMT) tertutup karena berisiko switching berbeban.'},
+      {no:3,label:'Tutup PMT KOP-01',
+       hint:'Klik kotak PMT pada bay Kopel. Kedua PMS sudah tertutup — PMT aman untuk dimasukkan.',
+       highlight:{bayId:'KOP-01',type:'pmt'},
+       test:function(ev){return ev.action==='pmt'&&ev.bayId==='KOP-01'&&ev.willClose;},
+       explanation:'Setelah kedua PMS tertutup, PMT kopel ditutup. Bus-A dan Bus-B kini diparalel melalui kopel dan berada pada satu potensial.'},
       {no:4,label:'Tutup PMS BB PH-01',
        hint:'Klik PMS BB pada bay Line 1 untuk menghubungkan ke Bus-B.',
+       highlight:{bayId:'PH-01',type:'pms'},
        test:function(ev){return ev.action==='pms'&&ev.bayId==='PH-01'&&ev.side===2&&ev.willClose;},
-       explanation:'Karena busbar sudah diparalel, PMS BB bisa ditutup tanpa trip PMT.'},
+       explanation:'Karena Bus-A dan Bus-B sudah diparalel via kopel (satu potensial), PMS BB PH-01 bisa ditutup saat PMT PH-01 masih tertutup — ini adalah kondisi manuver live busbar yang diizinkan.'},
       {no:5,label:'Buka PMS BA PH-01',
        hint:'Klik PMS BA pada bay Line 1 untuk melepas dari Bus-A.',
-       test:function(ev){return ev.action==='pms'&&ev.bayId==='PH-01'&&ev.side===1&&!ev.willClose;}},
-      {no:6,label:'Buka PMS BB KOP-01',
-       hint:'Klik PMS BB pada bay Kopel.',
-       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===2&&!ev.willClose;},
-       explanation:'Mulai lepas kopel. Buka PMS BB kopel terlebih dahulu.'},
-      {no:7,label:'Buka PMT KOP-01',
-       hint:'Klik kotak PMT pada bay Kopel untuk membuka pemutus.',
-       test:function(ev){return ev.action==='pmt'&&ev.bayId==='KOP-01'&&!ev.willClose;}},
+       highlight:{bayId:'PH-01',type:'pms'},
+       test:function(ev){return ev.action==='pms'&&ev.bayId==='PH-01'&&ev.side===1&&!ev.willClose;},
+       explanation:'Setelah PMS BB terhubung, lepas PMS BA. PH-01 kini hanya terhubung ke Bus-B. Transfer beban selesai.'},
+      {no:6,label:'Buka PMT KOP-01',
+       hint:'Klik kotak PMT pada bay Kopel. Harus dibuka SEBELUM PMS kopel dioperasikan.',
+       highlight:{bayId:'KOP-01',type:'pmt'},
+       test:function(ev){return ev.action==='pmt'&&ev.bayId==='KOP-01'&&!ev.willClose;},
+       explanation:'Untuk melepas kopel, PMT harus dibuka dulu (memutus arus) sebelum PMS dioperasikan. Urutan keluar kopel: PMT dulu, baru PMS.'},
+      {no:7,label:'Buka PMS BB KOP-01',
+       hint:'Klik PMS BB pada bay Kopel. PMT kopel sudah terbuka — aman untuk operasi PMS.',
+       highlight:{bayId:'KOP-01',type:'pms'},
+       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===2&&!ev.willClose;}},
       {no:8,label:'Buka PMS BA KOP-01',
        hint:'Klik PMS BA pada bay Kopel. Kopel selesai dilepas.',
+       highlight:{bayId:'KOP-01',type:'pms'},
        test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===1&&!ev.willClose;}}
     ],
     completionCheck:function(){
       var ph=getBay('PH-01'),kp=kopel;
-      return ph.pms2==='closed'&&ph.pms1==='open'&&ph.pmt==='closed'&&kp.pmt==='open';
+      return ph.pms2==='closed'&&ph.pms1==='open'&&ph.pmt==='closed'&&
+             kp.pmt==='open'&&kp.pms1==='open'&&kp.pms2==='open';
     },
-    successMsg:'✓ Transfer beban selesai. PH-01 kini beroperasi di Bus-B. Kopel telah dilepas.'
+    successMsg:'✓ Transfer beban selesai. PH-01 kini beroperasi di Bus-B. Kopel telah dilepas sepenuhnya.'
   },
   // ---- S04: De-energize PH-01 untuk pemeliharaan ----
   {
@@ -692,19 +704,23 @@ var SCENARIOS = [
     },
     steps:[
       {no:1,label:'Buka PMT PH-01',
+       highlight:{bayId:'PH-01',type:'pmt'},
        hint:'Klik kotak PMT pada bay Line 1 untuk membuka pemutus.',
        test:function(ev){return ev.action==='pmt'&&ev.bayId==='PH-01'&&!ev.willClose;},
        explanation:'PMT harus dibuka pertama untuk memutus aliran arus sebelum PMS dioperasikan.'},
       {no:2,label:'Buka PMS BA PH-01',
+       highlight:{bayId:'PH-01',type:'pms'},
        hint:'Klik PMS BA pada bay Line 1.',
        test:function(ev){return ev.action==='pms'&&ev.bayId==='PH-01'&&ev.side===1&&!ev.willClose;},
        explanation:'Setelah PMT terbuka, PMS busbar aman untuk dioperasikan.'},
       {no:3,label:'Buka PMS Line PH-01',
+       highlight:{bayId:'PH-01',type:'pmsLine'},
        hint:'Klik PMS Line pada bay Line 1.',
        test:function(ev){return ev.action==='pmsLine'&&ev.bayId==='PH-01'&&!ev.willClose;},
        explanation:'PMS Line memastikan isolasi total dari jaringan transmisi.'},
       {no:4,label:'Pasang pentanahan kerja PH-01',
-       hint:'Klik tombol "Pasang Pentanahan" pada kartu bay Line 1.',
+       highlight:{bayId:'PH-01',type:'earth'},
+       hint:'Klik tombol "Pasang pentanahan ⏚" pada kartu bay Line 1.',
        test:function(ev){return ev.action==='earth'&&ev.bayId==='PH-01'&&ev.willClose;},
        explanation:'Pentanahan kerja wajib dipasang sebelum teknisi menyentuh peralatan.'}
     ],
@@ -725,7 +741,8 @@ var SCENARIOS = [
     },
     steps:[
       {no:1,label:'Acknowledge alarm Trafo 1',
-       hint:'Klik "Acknowledge semua alarm" di bar alarm atas.',
+       highlight:{bayId:'TR-01', type:'alarm'},
+       hint:'Klik "Acknowledge semua alarm" di bar alarm atas (klik ikon 🔔 jika bar alarm tidak terlihat).',
        test:function(ev){return ev.action==='ack_alarm';},
        explanation:'Langkah pertama normalisasi adalah acknowledge alarm untuk menandai bahwa gangguan sudah diketahui operator.'},
       {no:2,label:'Periksa kondisi (simulasi)',
@@ -734,11 +751,13 @@ var SCENARIOS = [
        test:function(ev){return ev.action==='inspect'&&ev.bayId==='TR-01';},
        explanation:'Pemeriksaan visual dan proteksi harus dilakukan sebelum reklosing. Pastikan tidak ada tanda kerusakan fisik, relay proteksi sudah reset, dan aman untuk dimasukkan kembali.'},
       {no:3,label:'Tutup PMT TR-01',
+       highlight:{bayId:'TR-01',type:'pmt'},
        hint:'Klik kotak PMT pada bay Trafo 1.',
        test:function(ev){return ev.action==='pmt'&&ev.bayId==='TR-01'&&ev.willClose;},
        explanation:'Setelah pemeriksaan selesai dan kondisi dinyatakan aman, PMT bisa dimasukkan kembali.'},
       {no:4,label:'Tutup PMT LV TR-01',
-       hint:'Klik PMT LV pada bay Trafo 1.',
+       highlight:{bayId:'TR-01',type:'pmtLV'},
+       hint:'Klik kotak PMT kecil sisi 20 kV pada bay Trafo 1.',
        test:function(ev){return ev.action==='pmtLV'&&ev.bayId==='TR-01'&&ev.willClose;}}
     ],
     completionCheck:function(){var b=getBay('TR-01');return b&&b.pmt==='closed'&&b.pmtLV==='closed';},
@@ -748,7 +767,7 @@ var SCENARIOS = [
   {
     id:'S06', category:'Manuver', difficulty:'Dasar',
     title:'Memasukkan Kopel untuk Paralel Busbar',
-    desc:'Bus-A dan Bus-B beroperasi dari sumber terpisah. Paralelkan keduanya melalui bay kopel.',
+    desc:'Bus-A dan Bus-B beroperasi dari sumber terpisah. Paralelkan keduanya melalui bay kopel. Urutan wajib: tutup PMS BA → PMS BB → baru PMT.',
     estimatedTime:90,
     initState: function(){
       resetAllSim();
@@ -757,15 +776,20 @@ var SCENARIOS = [
     },
     steps:[
       {no:1,label:'Tutup PMS BA KOP-01',
-       hint:'Klik PMS BA pada bay Kopel.',
-       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===1&&ev.willClose;}},
-      {no:2,label:'Tutup PMT KOP-01',
-       hint:'Klik kotak PMT pada bay Kopel.',
+       highlight:{bayId:'KOP-01',type:'pms'},
+       hint:'Klik PMS BA (atas) pada bay Kopel. PMT kopel masih terbuka.',
+       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===1&&ev.willClose;},
+       explanation:'PMS BA kopel dihubungkan ke Bus-A. PMT masih terbuka — aman untuk operasi PMS.'},
+      {no:2,label:'Tutup PMS BB KOP-01',
+       highlight:{bayId:'KOP-01',type:'pms'},
+       hint:'Klik PMS BB (bawah) pada bay Kopel. PMT kopel MASIH TERBUKA — tutup PMS BB dulu sebelum PMT.',
+       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===2&&ev.willClose;},
+       explanation:'PMS BB kopel dihubungkan ke Bus-B. Kedua PMS harus tertutup SEBELUM PMT. Aturan dasar: disconnector (PMS) hanya boleh dioperasikan saat circuit breaker (PMT) terbuka.'},
+      {no:3,label:'Tutup PMT KOP-01',
+       highlight:{bayId:'KOP-01',type:'pmt'},
+       hint:'Klik kotak PMT pada bay Kopel. Kedua PMS sudah tertutup — PMT aman dimasukkan.',
        test:function(ev){return ev.action==='pmt'&&ev.bayId==='KOP-01'&&ev.willClose;},
-       explanation:'PMT kopel menghubungkan dua busbar. Pastikan kedua busbar dalam kondisi sinkron (tegangan sama) sebelum menutup PMT kopel.'},
-      {no:3,label:'Tutup PMS BB KOP-01',
-       hint:'Klik PMS BB pada bay Kopel.',
-       test:function(ev){return ev.action==='pms'&&ev.bayId==='KOP-01'&&ev.side===2&&ev.willClose;}}
+       explanation:'PMT kopel ditutup setelah kedua PMS terpasang. Bus-A dan Bus-B kini diparalel — berada pada satu potensial yang sama.'}
     ],
     completionCheck:function(){return kopel.pms1==='closed'&&kopel.pmt==='closed'&&kopel.pms2==='closed';},
     successMsg:'✓ Kopel masuk. Bus-A dan Bus-B kini diparalel dan memiliki potensial yang sama.'
@@ -1095,6 +1119,7 @@ function attemptTogglePms(b,side){
     if(b.id===kopel.id){log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMT kopel harus dibuka terlebih dahulu.',false);return;}
     if(!isBusesParalleled()){log('PMS B'+busLbl(side)+' '+b.id+' ditolak: PMT bay masih tertutup, busbar belum diparalel via kopel.',false);return;}
     if(!willClose&&b[oKey]==='open'){log('PMS B'+busLbl(side)+' '+b.id+' ditolak: membuka PMS ini akan mengisolasi bay dari semua busbar.',false);return;}
+    pushUndo();
     b[key]=willClose?'closed':'open';
     log('PMS B'+busLbl(side)+' '+b.id+' '+(willClose?'ditutup':'dibuka')+' — manuver (kopel masuk)',true,{action:'pms',bayId:b.id,side:side,willClose:willClose});
     render(); return;
