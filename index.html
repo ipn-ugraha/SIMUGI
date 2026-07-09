@@ -109,6 +109,11 @@ body{ background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMa
 .step-no{ font-family:var(--mono); font-size:10px; color:var(--text-muted); margin-bottom:2px; }
 .step-label{ font-weight:500; }
 .step-hint{ font-size:11px; color:var(--text-secondary); margin-top:3px; }
+.comms-choice{ display:block; width:100%; text-align:left; background:var(--card2); border:0.5px solid var(--border-strong); border-radius:8px; padding:9px 11px; margin-bottom:6px; font-size:12px; color:var(--text); cursor:pointer; font-family:inherit; line-height:1.5; }
+.comms-choice:hover{ border-color:var(--accent); }
+.comms-log-op{ color:var(--text-secondary); }
+.comms-log-piket-ok{ color:var(--green); }
+.comms-log-piket-bad{ color:var(--red); }
 #hint-box{ background:var(--yellow2); border:0.5px solid rgba(227,179,65,.3); border-radius:8px; padding:10px 12px; font-size:12px; margin-bottom:10px; display:none; }
 /* Exam panel */
 #exam-panel{ display:none; }
@@ -353,6 +358,14 @@ button.bay-btn.btn-full{ width:100%; display:block; }
 
     <!-- Sidebar -->
     <div class="sim-sidebar">
+      <!-- Comms (piket) panel -->
+      <div id="comms-panel" style="display:none">
+        <div class="sidebar-section">
+          <div class="sidebar-title"><span>📻 KOMUNIKASI PIKET</span></div>
+          <div id="comms-log" style="font-size:12px;line-height:1.6;color:var(--text-secondary);margin-bottom:10px">Belum ada komunikasi.</div>
+          <div id="comms-choices" style="display:none"></div>
+        </div>
+      </div>
       <!-- Training panel -->
       <div id="training-panel">
         <div class="sidebar-section">
@@ -453,6 +466,10 @@ button.bay-btn.btn-full{ width:100%; display:block; }
     <h2 id="modal-scenario-title">Pilih Skenario</h2>
     <p class="sub" id="modal-scenario-sub"></p>
     <div id="scenario-list"></div>
+    <label style="display:flex;align-items:flex-start;gap:8px;margin-top:14px;padding:10px 12px;background:var(--card2);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text-secondary)">
+      <input type="checkbox" id="commsFlowToggle" style="margin-top:2px" />
+      <span><strong style="color:var(--text)">Gunakan alur komunikasi piket</strong><br>Setiap manuver PMT/CB wajib izin piket lebih dulu (naskah pilihan ganda, ada jebakan). Manuver tanpa izin dihitung pelanggaran.</span>
+    </label>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal('modal-scenario')">Batal</button>
       <button class="btn-primary" id="startScenarioBtn" onclick="startScenario()" disabled>Mulai</button>
@@ -1633,8 +1650,17 @@ function attemptTogglePms15(d,which){
 function attemptToggleCB15(d,which){
   var key=which==='top'?'cbTop':which==='mid'?'cbMid':'cbBot';
   var lbl=cbLabel15(which,d.id);
+  var wc=d[key]==='open';
+  var commsKey='cb15_'+d.id+'_'+which+'_'+(wc?'close':'open');
+  if(CommsFlow.active && !CommsFlow.isGranted(commsKey)){
+    log(lbl+' ditolak: belum ada izin piket. Hubungi piket terlebih dahulu.',false,null,true);
+    Sound.play('reject');
+    CommsFlow.request(commsKey,lbl,wc?'tutup':'buka',function(){ attemptToggleCB15(d,which); });
+    return;
+  }
+  if(CommsFlow.active) CommsFlow.consume(commsKey);
   pushUndo();
-  var wc=d[key]==='open'; d[key]=wc?'closed':'open';
+  d[key]=wc?'closed':'open';
   log(lbl+' '+d.id+' '+(wc?'ditutup':'dibuka'),true,{action:'cb15',diamId:d.id,which:which,willClose:wc});
   renderBreaker15();
 }
@@ -1715,6 +1741,104 @@ var Sound = {
   }
 };
 
+// ---- Comms flow (izin manuver ke piket) ----
+var CommsFlow = {
+  active: false,
+  granted: {},   // key -> true once granted (single-use, cleared after action executes)
+  pendingKey: null,
+  reset: function(){
+    this.granted = {};
+    this.pendingKey = null;
+    var log=document.getElementById('comms-log'); if(log) log.innerHTML='Belum ada komunikasi.';
+    var ch=document.getElementById('comms-choices'); if(ch){ ch.style.display='none'; ch.innerHTML=''; }
+  },
+  setActive: function(on){
+    this.active = on;
+    var panel=document.getElementById('comms-panel');
+    if(panel) panel.style.display = on ? 'block' : 'none';
+    if(on) this.reset();
+  },
+  isGranted: function(key){ return !!this.granted[key]; },
+  consume: function(key){ delete this.granted[key]; },
+  // Build 3 shuffled options: 1 correct + 2 traps (wrong equipment, incomplete comms)
+  buildOptions: function(label, actionWord, confusable){
+    var opName = App.operator || 'Operator';
+    var correct = {text:'"Piket GI, dari '+opName+'. Izin '+actionWord+' '+label+'. Ganti."', ok:true};
+    var trapEquip = {text:'"Piket GI, dari '+opName+'. Izin '+actionWord+' '+confusable+'. Ganti."', ok:false,
+      reason:'Peralatan yang disebutkan salah — seharusnya "'+label+'", bukan "'+confusable+'". Kesalahan sebut peralatan berisiko fatal dalam manuver nyata.'};
+    var trapVague = {text:'"Piket, mau '+actionWord+' PMT ya, izin."', ok:false,
+      reason:'Permintaan tidak lengkap: tanpa identifikasi operator/GI, tanpa nama peralatan spesifik, dan tanpa kata tutup "Ganti". Komunikasi harus baku dan jelas.'};
+    var opts=[correct,trapEquip,trapVague];
+    for(var i=opts.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=opts[i]; opts[i]=opts[j]; opts[j]=t; }
+    return opts;
+  },
+  confusableFor: function(label){
+    if(/\bA(\d)\b/.test(label)) return label.replace(/\bA(\d)\b/,'B$1');
+    if(/\bB(\d)\b/.test(label)) return label.replace(/\bB(\d)\b/,'A$1');
+    if(/\bAB(\d)\b/.test(label)){ var n=parseInt(label.match(/\bAB(\d)\b/)[1],10); var alt=(n%4)+1; return label.replace(/\bAB\d\b/,'AB'+alt); }
+    if(/Trafo 1/.test(label)) return label.replace('Trafo 1','Trafo 2');
+    if(/Trafo 2/.test(label)) return label.replace('Trafo 2','Trafo 1');
+    if(/Penghantar 1/.test(label)) return label.replace('Penghantar 1','Penghantar 2');
+    if(/Penghantar 2/.test(label)) return label.replace('Penghantar 2','Penghantar 1');
+    if(/Kopel/.test(label)) return label+' sisi lain';
+    return label+' (bay lain)';
+  },
+  appendLog: function(cls,who,text){
+    var log=document.getElementById('comms-log'); if(!log)return;
+    if(log.innerHTML==='Belum ada komunikasi.') log.innerHTML='';
+    log.innerHTML += '<div class="'+cls+'" style="margin-bottom:5px"><strong>'+who+':</strong> '+text+'</div>';
+    log.scrollTop = log.scrollHeight;
+  },
+  // Called by attemptTogglePMT / attemptToggleCB15 when gating a critical action
+  request: function(key, label, actionWord, onGranted){
+    this.pendingKey = key;
+    var confusable = this.confusableFor(label);
+    var opts = this.buildOptions(label, actionWord, confusable);
+    var ch=document.getElementById('comms-choices');
+    if(!ch)return;
+    ch.style.display='block';
+    ch.innerHTML = '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Pilih naskah permintaan izin yang benar:</div>' +
+      opts.map(function(o,i){ return '<button class="comms-choice" data-i="'+i+'">'+o.text+'</button>'; }).join('');
+    this.appendLog('comms-log-op','Sistem','Menunggu operator menghubungi piket untuk '+actionWord+' '+label+'...');
+    var self=this;
+    ch.querySelectorAll('.comms-choice').forEach(function(btn,i){
+      btn.addEventListener('click', function(){
+        self.choose(opts[i], key, label, actionWord, onGranted);
+      });
+    });
+  },
+  choose: function(opt, key, label, actionWord, onGranted){
+    var ch=document.getElementById('comms-choices');
+    this.appendLog('comms-log-op','Operator',opt.text.replace(/^"|"$/g,''));
+    if(opt.ok){
+      this.appendLog('comms-log-piket-ok','Piket','"Izin diberikan untuk '+actionWord+' '+label+'. Laksanakan dan laporkan setelah selesai. Ganti."');
+      if(ch){ ch.style.display='none'; ch.innerHTML=''; }
+      this.granted[key]=true;
+      this.pendingKey=null;
+      Sound.play('success');
+      log('Izin piket diberikan untuk '+actionWord+' '+label+'.',true,null,true);
+      onGranted();
+    } else {
+      this.appendLog('comms-log-piket-bad','Piket','"Tolak, mohon ulangi permintaan dengan benar. Ganti."');
+      Sound.play('violation');
+      var isTrainingActive = Training.active, isExamActive = Exam.active;
+      log('Permintaan izin ditolak piket: '+opt.reason,false,null,true);
+      if(isExamActive){
+        Exam.violations.push({
+          time:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+          stepNo:Exam.currentStep+1, done:'Permintaan izin salah: '+opt.text, should:'Naskah izin yang benar dan lengkap', why:opt.reason
+        });
+        var vEl=document.getElementById('exam-violations'); if(vEl)vEl.textContent=Exam.violations.length;
+      } else if(isTrainingActive){
+        Training.wrongActions++;
+      }
+      // Re-present choices for retry (shuffled again)
+      var self=this;
+      setTimeout(function(){ self.request(key,label,actionWord,onGranted); },900);
+    }
+  }
+};
+
 function log(text,ok,ev,silent){
   var time=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   simLogs.unshift({time:time,text:text,ok:ok});
@@ -1768,6 +1892,15 @@ function attemptTogglePMT(b){
     if(!hasBus){log('PMT '+b.id+' ditolak: masukkan minimal satu PMS busbar sebelum menutup PMT penghantar.',false);return;}
     if(b.pmsLine==='open'){log('PMT '+b.id+' ditolak: PMS Line harus tertutup sebelum menutup PMT penghantar.',false);return;}
   }
+  var commsKey='pmt_'+b.id+'_'+(wc?'close':'open');
+  if(CommsFlow.active && !CommsFlow.isGranted(commsKey)){
+    log('PMT '+b.id+' ditolak: belum ada izin piket. Hubungi piket terlebih dahulu.',false,null,true);
+    Sound.play('reject');
+    var label='PMT '+(b.type||b.id);
+    CommsFlow.request(commsKey,label,wc?'tutup':'buka',function(){ attemptTogglePMT(b); });
+    return;
+  }
+  if(CommsFlow.active) CommsFlow.consume(commsKey);
   pushUndo();
   b.pmt=wc?'closed':'open';
   log('PMT '+b.id+' '+(wc?'ditutup':'dibuka'),true,{action:'pmt',bayId:b.id,willClose:wc});
@@ -2308,10 +2441,11 @@ function startMode(mode){
   document.getElementById('free-panel').style.display=(mode==='free'||mode==='drill')?'block':'none';
   document.getElementById('undoBtn').style.display=mode==='train'?'inline-block':'none';
   navigate('sim');
-  if(mode==='free'||mode==='drill'){ resetSim(); }
+  if(mode==='free'||mode==='drill'){ CommsFlow.setActive(false); resetSim(); }
 }
 function exitMode(){
   Training.active=false; Exam.active=false; clearInterval(Exam.timerInterval);
+  CommsFlow.setActive(false);
   updateHighlights(); undoStack=[];
   document.getElementById('undoBtn').style.display='none';
 }
@@ -2322,6 +2456,7 @@ function openScenarioModal(mode){
   document.getElementById('modal-scenario-sub').textContent=mode==='train'?'Latihan prosedur dengan panduan langkah demi langkah.':'Ujian tanpa bantuan. Skor dan waktu akan dicatat.';
   App.selectedScenario=null;
   document.getElementById('startScenarioBtn').disabled=true;
+  var cft=document.getElementById('commsFlowToggle'); if(cft) cft.checked=false;
   var diffColor={Dasar:'rgba(29,158,117,.15)',Menengah:'rgba(227,179,65,.15)',Lanjutan:'rgba(226,75,74,.15)'};
   var diffText={Dasar:greenC,Menengah:'#e3b341',Lanjutan:redC};
   var filteredScenarios=SCENARIOS.filter(function(sc){return sc.simType===simType;});
@@ -2343,12 +2478,14 @@ function selectScenario(id){
 }
 function startScenario(){
   if(!App.selectedScenario)return;
+  var useComms = !!document.getElementById('commsFlowToggle').checked;
   closeModal('modal-scenario');
   var mode=App.pendingMode;
   var sc=App.selectedScenario;
   // Set simType from scenario
   if(sc.simType) setSimType(sc.simType);
   startMode(mode);
+  CommsFlow.setActive(useComms);
   simLogs=[];
   if(mode==='train') Training.start(sc);
   else Exam.start(sc);
