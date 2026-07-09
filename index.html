@@ -984,7 +984,7 @@ var SCENARIOS = [
        explanation:'Mulai dari sisi Trafo 2. PMS atas PMT B3 menghubungkan tap Trafo 2 ke atas PMT B3.'},
       {no:6,label:'Tutup PMS Bus-B D3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS Bus-B (paling bawah) Diameter 3.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus2'&&ev.willClose;},
-       explanation:'PMS Bus-B menghubungkan bawah PMT B3 ke Bus-B yang sudah bertegangan dari Penghantar 2.'},
+       explanation:'PMS Bus-B menghubungkan bawah PMT B3 ke Bus-B yang sudah bertegangan dari Pembangkit 2.'},
       {no:7,label:'Tutup PMT B3',highlight:{bayId:'D3',type:'cb15'},hint:'Klik PMT B3 (bawah) Diameter 3.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='bot'&&ev.willClose;},
        explanation:'PMT B3 sebagai pemutus final. Trafo 2 kini bertegangan dari Bus-B.'},
@@ -1064,16 +1064,16 @@ var SCENARIOS = [
   {
     id:'S12', simType:'breaker15', category:'Energisasi', difficulty:'Lanjutan',
     title:'Energisasi Penuh Sistem 1½ Breaker dari Padam Total',
-    desc:'Seluruh sistem padam. Energisasi bertahap: Penghantar 1 ke Bus-A, Penghantar 2 ke Bus-B, kemudian kedua Trafo.',
+    desc:'Seluruh sistem padam. Energisasi bertahap: Penghantar 1 ke Bus-A, Pembangkit 2 ke Bus-B, kemudian kedua Trafo.',
     estimatedTime:480,
     initState:function(){ resetBreaker15(); },
     steps:[
       {no:1,label:'Tutup PMS bawah PMT A1',highlight:{bayId:'D1',type:'pms15'},hint:'PMS bawah PMT A1 Diameter 1 (sisi tap Penghantar 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='topA'&&ev.willClose;}},
       {no:2,label:'Tutup PMS Bus-A D1',highlight:{bayId:'D1',type:'pms15'},hint:'PMS Bus-A Diameter 1.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='bus1'&&ev.willClose;}},
       {no:3,label:'Tutup PMT A1',highlight:{bayId:'D1',type:'cb15'},hint:'PMT A1 Diameter 1 (kedua PMS sudah tertutup).',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D1'&&ev.which==='top'&&ev.willClose;},explanation:'Bus-A kini bertegangan dari Penghantar 1.'},
-      {no:4,label:'Tutup PMS atas PMT B2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS atas PMT B2 Diameter 2 (sisi tap Penghantar 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='botB'&&ev.willClose;}},
+      {no:4,label:'Tutup PMS atas PMT B2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS atas PMT B2 Diameter 2 (sisi tap Pembangkit 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='botB'&&ev.willClose;}},
       {no:5,label:'Tutup PMS Bus-B D2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS Bus-B Diameter 2.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='bus2'&&ev.willClose;}},
-      {no:6,label:'Tutup PMT B2',highlight:{bayId:'D2',type:'cb15'},hint:'PMT B2 Diameter 2.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D2'&&ev.which==='bot'&&ev.willClose;},explanation:'Bus-B kini bertegangan dari Penghantar 2.'},
+      {no:6,label:'Tutup PMT B2',highlight:{bayId:'D2',type:'cb15'},hint:'PMT B2 Diameter 2.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D2'&&ev.which==='bot'&&ev.willClose;},explanation:'Bus-B kini bertegangan dari Pembangkit 2.'},
       {no:7,label:'Tutup PMS bawah PMT A3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS bawah PMT A3 Diameter 3 (sisi tap Trafo 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='topA'&&ev.willClose;}},
       {no:8,label:'Tutup PMS Bus-A D3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS Bus-A Diameter 3.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus1'&&ev.willClose;}},
       {no:9,label:'Tutup PMT A3',highlight:{bayId:'D3',type:'cb15'},hint:'PMT A3 Diameter 3.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='top'&&ev.willClose;},explanation:'Trafo 1 bertegangan dari Bus-A.'},
@@ -2111,7 +2111,7 @@ function triggerFaultModal(){
     opts=[
       {label:'Trip PMT AB3 Diameter 3 (PMT tengah Trafo)', action:function(){var d=getDiam('D3');if(d){d.cbMid='open';addAlarm('PMT AB3 TRIP D3 — Trafo 2 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT AB3 D3 trip.',false,null,true);}},
       {label:'Trip PMT A1 Diameter 1 (Penghantar 1)', action:function(){var d=getDiam('D1');if(d){d.cbTop='open';addAlarm('PMT A1 TRIP D1 — Penghantar 1 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT A1 D1 trip.',false,null,true);}},
-      {label:'Trip PMT B2 Diameter 2 (Penghantar 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('PMT B2 TRIP D2 — Penghantar 2 terputus dari Bus-B.','danger');renderBreaker15();}log('PMT B2 D2 trip.',false,null,true);}},
+      {label:'Trip PMT B2 Diameter 2 (Pembangkit 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('PMT B2 TRIP D2 — Pembangkit 2 terputus dari Bus-B.','danger');renderBreaker15();}log('PMT B2 D2 trip.',false,null,true);}},
       {label:'Reset semua fault', action:function(){diameters.forEach(function(d){d.circuitA.fault=null;d.circuitB.fault=null;});renderBreaker15();log('Semua fault direset.',true);}}
     ];
   } else {
