@@ -284,6 +284,7 @@ button.bay-btn.btn-full{ width:100%; display:block; }
     <span id="modeBadge" class="sim-mode-badge free">BEBAS</span>
     <span class="sim-op" id="simOpName"></span>
     <div class="sim-topbar-right">
+      <button class="btn-sm" id="soundBtn" onclick="Sound.toggle()">🔊 Suara</button>
       <button class="btn-sm" id="alarmBtn" onclick="toggleAlarmPanel()">
         🔔 Alarm <span class="alarm-count" id="alarmCount"></span>
       </button>
@@ -1670,11 +1671,56 @@ function dispatchEvent(ev){
   if(Exam.active) Exam.check(ev);
 }
 
-function log(text,ok,ev){
+// ---- Sound engine (Web Audio API, no external files) ----
+var Sound = {
+  enabled: (localStorage.getItem('simugi_sound')!=='off'),
+  actx: null,
+  ctx: function(){ if(!this.actx) this.actx = new (window.AudioContext||window.webkitAudioContext)(); return this.actx; },
+  tone: function(freq,start,dur,type,vol){
+    if(!this.enabled) return;
+    var c=this.ctx();
+    var o=c.createOscillator(), g=c.createGain();
+    o.type=type||'square'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0,c.currentTime+start);
+    g.gain.linearRampToValueAtTime(vol||0.2,c.currentTime+start+0.008);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+start+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur+0.02);
+  },
+  sweep: function(f1,f2,start,dur,type,vol){
+    if(!this.enabled) return;
+    var c=this.ctx();
+    var o=c.createOscillator(), g=c.createGain();
+    o.type=type||'sawtooth';
+    o.frequency.setValueAtTime(f1,c.currentTime+start);
+    o.frequency.linearRampToValueAtTime(f2,c.currentTime+start+dur);
+    g.gain.setValueAtTime(0,c.currentTime+start);
+    g.gain.linearRampToValueAtTime(vol||0.18,c.currentTime+start+0.02);
+    g.gain.linearRampToValueAtTime(0.001,c.currentTime+start+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(c.currentTime+start); o.stop(c.currentTime+start+dur+0.02);
+  },
+  play: function(type){
+    if(!this.enabled) return;
+    if(type==='alarm'){ for(var i=0;i<3;i++){ this.sweep(500,1000,i*0.4,0.3,'sawtooth',0.16); } }
+    else if(type==='reject'){ this.tone(1200,0,0.02,'square',0.2); this.tone(200,0.05,0.08,'square',0.2); this.tone(1200,0.14,0.02,'square',0.2); this.tone(200,0.19,0.08,'square',0.2); }
+    else if(type==='violation'){ this.tone(700,0,0.13,'square',0.18); this.tone(500,0.15,0.13,'square',0.18); this.tone(700,0.32,0.13,'square',0.18); this.tone(500,0.47,0.16,'square',0.18); }
+    else if(type==='success'){ this.tone(523,0,0.09,'sine',0.15); this.tone(659,0.08,0.09,'sine',0.15); this.tone(784,0.16,0.18,'sine',0.15); }
+  },
+  toggle: function(){
+    this.enabled = !this.enabled;
+    localStorage.setItem('simugi_sound', this.enabled?'on':'off');
+    var btn=document.getElementById('soundBtn');
+    if(btn) btn.innerHTML = this.enabled ? '🔊 Suara' : '🔇 Suara';
+  }
+};
+
+function log(text,ok,ev,silent){
   var time=new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   simLogs.unshift({time:time,text:text,ok:ok});
   if(simLogs.length>100)simLogs.pop();
   renderLog();
+  if(!silent && ok===false) Sound.play('reject');
   if(ev) dispatchEvent(ev);
 }
 function renderLog(){
@@ -1785,11 +1831,12 @@ var Training = {
     var step=steps[this.currentStep];
     if(step.test(ev)){
       this.currentStep++;
+      Sound.play('success');
       log('✓ Langkah '+step.no+' benar: '+step.label,true);
       if(this.currentStep>=steps.length){ this.complete(); return; }
       this.renderPanel();
     } else {
-      if(ev.ok!==false){ this.wrongActions++; log('✗ Langkah tidak sesuai. Langkah saat ini: '+steps[this.currentStep].label,false); }
+      if(ev.ok!==false){ this.wrongActions++; Sound.play('violation'); log('✗ Langkah tidak sesuai. Langkah saat ini: '+steps[this.currentStep].label,false,null,true); }
       this.renderPanel();
     }
   },
@@ -1814,7 +1861,7 @@ var Training = {
     if(!this.active)return;
     var step=this.scenario.steps[this.currentStep];
     if(!step)return;
-    log('Langkah '+step.no+' dilewati.',false);
+    log('Langkah '+step.no+' dilewati.',false,null,true);
     this.currentStep++;
     this.wrongActions+=2;
     if(this.currentStep>=this.scenario.steps.length) this.complete();
@@ -1929,6 +1976,7 @@ var Exam = {
       // Correct action for current step
       this.currentStep++;
       this.correctSteps++;
+      Sound.play('success');
       document.getElementById('exam-correct').textContent=this.correctSteps;
       if(this.currentStep>=steps.length||this.scenario.completionCheck()){ this.finish(false); return; }
     } else if(ev.ok!==false){
@@ -1941,6 +1989,7 @@ var Exam = {
         should: info.should,
         why: info.why
       });
+      Sound.play('violation');
       document.getElementById('exam-violations').textContent=this.violations.length;
     }
     if(this.scenario.completionCheck()) this.finish(false);
@@ -2006,6 +2055,7 @@ function addAlarm(msg,severity){
   alarmList.push({id:alarmIdCounter, msg:msg, severity:severity||'danger', acked:false, time:new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
   updateAlarmBadge();
   renderAlarms();
+  Sound.play('alarm');
 }
 function updateAlarmBadge(){
   var unacked=alarmList.filter(function(a){return !a.acked;}).length;
@@ -2048,7 +2098,7 @@ function triggerFault(id, type, reason){
     else if(type==='lock'){ b.fault='lock'; addAlarm('FAULT LOCK '+id+' — '+(reason||'Peralatan terkunci'),'danger'); }
     render();
   }
-  log('Gangguan: '+id+' '+(type==='trip'?'trip':type)+'. '+reason,false);
+  log('Gangguan: '+id+' '+(type==='trip'?'trip':type)+'. '+reason,false,null,true);
 }
 function clearFault(id){
   if(simType==='breaker15'){var d=getDiam(id);if(d)renderBreaker15();}
@@ -2059,9 +2109,9 @@ function triggerFaultModal(){
   var opts;
   if(simType==='breaker15'){
     opts=[
-      {label:'Trip PMT AB3 Diameter 3 (PMT tengah Trafo)', action:function(){var d=getDiam('D3');if(d){d.cbMid='open';addAlarm('PMT AB3 TRIP D3 — Trafo 2 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT AB3 D3 trip.',false);}},
-      {label:'Trip PMT A1 Diameter 1 (Penghantar 1)', action:function(){var d=getDiam('D1');if(d){d.cbTop='open';addAlarm('PMT A1 TRIP D1 — Penghantar 1 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT A1 D1 trip.',false);}},
-      {label:'Trip PMT B2 Diameter 2 (Penghantar 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('PMT B2 TRIP D2 — Penghantar 2 terputus dari Bus-B.','danger');renderBreaker15();}log('PMT B2 D2 trip.',false);}},
+      {label:'Trip PMT AB3 Diameter 3 (PMT tengah Trafo)', action:function(){var d=getDiam('D3');if(d){d.cbMid='open';addAlarm('PMT AB3 TRIP D3 — Trafo 2 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT AB3 D3 trip.',false,null,true);}},
+      {label:'Trip PMT A1 Diameter 1 (Penghantar 1)', action:function(){var d=getDiam('D1');if(d){d.cbTop='open';addAlarm('PMT A1 TRIP D1 — Penghantar 1 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT A1 D1 trip.',false,null,true);}},
+      {label:'Trip PMT B2 Diameter 2 (Penghantar 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('PMT B2 TRIP D2 — Penghantar 2 terputus dari Bus-B.','danger');renderBreaker15();}log('PMT B2 D2 trip.',false,null,true);}},
       {label:'Reset semua fault', action:function(){diameters.forEach(function(d){d.circuitA.fault=null;d.circuitB.fault=null;});renderBreaker15();log('Semua fault direset.',true);}}
     ];
   } else {
@@ -2406,6 +2456,8 @@ resetAllSim();
 buildDom();
 render();
 setSimType('double');
+var soundBtnInit=document.getElementById('soundBtn');
+if(soundBtnInit) soundBtnInit.innerHTML = Sound.enabled ? '🔊 Suara' : '🔇 Suara';
 
 document.getElementById('sld').addEventListener('click',handleAction);
 document.getElementById('table').addEventListener('click',handleAction);
