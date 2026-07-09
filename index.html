@@ -229,7 +229,7 @@ button.bay-btn.btn-full{ width:100%; display:block; }
         <div id="cfg-breaker15" class="mode-card" data-color="yellow" onclick="setSimType('breaker15')" style="flex:1;padding:14px">
           <div style="font-size:16px;margin-bottom:6px">⬆️➡️⬇️</div>
           <div class="mode-title">Satu Setengah Breaker</div>
-          <div class="mode-desc">Bus-A &amp; Bus-B · 4 diameter · 3 CB/diameter</div>
+          <div class="mode-desc">Bus-A &amp; Bus-B · 4 diameter · 3 PMT/diameter</div>
         </div>
       </div>
       <div id="simTypeBadge" style="margin-top:8px;font-family:monospace;font-size:11px;color:var(--text-muted)">Aktif: Double Busbar</div>
@@ -614,18 +614,19 @@ function setSimType(t){
         '<div>\u2022 Pentanahan: semua PMS dan PMS Line harus terbuka</div>';
     } else {
       il.innerHTML=
-        '<div>\u2022 PMS hanya boleh dioperasikan saat CB terkait terbuka</div>'+
-        '<div>\u2022 PMS Bus-A / bawah CB1: butuh CB1 terbuka</div>'+
-        '<div>\u2022 PMS atas CB2 / bawah CB2: butuh CB2 terbuka</div>'+
-        '<div>\u2022 PMS atas CB3 / Bus-B: butuh CB3 terbuka</div>'+
+        '<div>\u2022 PMS hanya boleh dioperasikan saat PMT terkait terbuka</div>'+
+        '<div>\u2022 PMS Bus-A / bawah PMT A: butuh PMT A terbuka</div>'+
+        '<div>\u2022 PMS atas/bawah PMT AB: butuh PMT AB terbuka</div>'+
+        '<div>\u2022 PMS atas PMT B / Bus-B: butuh PMT B terbuka</div>'+
         '<div>\u2022 PMT LV trafo: sisi HV harus bertegangan dari salah satu busbar</div>'+
-        '<div>\u2022 <i>Tidak ada PMS Line pada topologi 1\u00bd breaker</i></div>';
+        '<div>\u2022 <i>Tidak ada PMS Line pada topologi 1\u00bd breaker</i></div>'+
+        '<div>\u2022 <i>Penamaan: PMT A = atas, PMT AB = tengah, PMT B = bawah (per diameter)</i></div>';
     }
   }
   // Update legend labels: PMT ↔ CB, hide earth on breaker15
   var lgClosed=document.getElementById('lg-pmt-closed'), lgOpen=document.getElementById('lg-pmt-open'), lgEarth=document.getElementById('lg-earth');
-  if(lgClosed) lgClosed.textContent = t==='breaker15' ? 'CB tertutup' : 'PMT tertutup';
-  if(lgOpen)   lgOpen.textContent   = t==='breaker15' ? 'CB terbuka'  : 'PMT terbuka';
+  if(lgClosed) lgClosed.textContent = 'PMT tertutup';
+  if(lgOpen)   lgOpen.textContent   = 'PMT terbuka';
   if(lgEarth)  lgEarth.style.display = t==='breaker15' ? 'none' : '';
   // Rebuild SLD immediately if already on simulator screen
   if(App.screen==='sim'){
@@ -917,25 +918,25 @@ var SCENARIOS = [
   {
     id:'S08', simType:'breaker15', category:'Energisasi', difficulty:'Dasar',
     title:'Energisasi Penghantar 1 dari Bus-A (D1)',
-    desc:'Masukkan sirkit Penghantar 1 dari kondisi padam ke bertegangan Bus-A melalui Diameter 1. Aturan wajib: semua PMS (isolator) tertutup terlebih dahulu, CB (pemutus) sebagai langkah terakhir.',
+    desc:'Masukkan sirkit Penghantar 1 dari kondisi padam ke bertegangan Bus-A melalui Diameter 1. Aturan wajib: semua PMS (isolator) tertutup terlebih dahulu, PMT (pemutus) sebagai langkah terakhir.',
     estimatedTime:90,
     initState:function(){ resetBreaker15(); },
     steps:[
-      {no:1,label:'Tutup PMS bawah CB1 Diameter 1',
+      {no:1,label:'Tutup PMS bawah PMT A1',
        highlight:{bayId:'D1',type:'pms15'},
-       hint:'Klik belah ketupat PMS di bawah CB1 pada Diameter 1 (antara CB1 dan tap sirkit A).',
+       hint:'Klik belah ketupat PMS di bawah PMT A1 pada Diameter 1 (antara PMT A1 dan tap sirkit A).',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='topA'&&ev.willClose;},
-       explanation:'Mulai dari sisi sumber. PMS bawah CB1 menghubungkan tap sirkit Penghantar 1 ke bagian bawah CB1. CB1 masih terbuka — aman untuk operasi PMS.'},
+       explanation:'Mulai dari sisi sumber. PMS bawah PMT A1 menghubungkan tap sirkit Penghantar 1 ke bagian bawah PMT A1. PMT A1 masih terbuka — aman untuk operasi PMS.'},
       {no:2,label:'Tutup PMS Bus-A Diameter 1',
        highlight:{bayId:'D1',type:'pms15'},
        hint:'Klik belah ketupat PMS Bus-A (paling atas) pada Diameter 1.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='bus1'&&ev.willClose;},
-       explanation:'PMS Bus-A menghubungkan bagian atas CB1 ke Bus-A. Kedua PMS kini tertutup, CB1 siap dioperasikan.'},
-      {no:3,label:'Tutup CB1 (atas) Diameter 1',
+       explanation:'PMS Bus-A menghubungkan bagian atas PMT A1 ke Bus-A. Kedua PMS kini tertutup, PMT A1 siap dioperasikan.'},
+      {no:3,label:'Tutup PMT A1',
        highlight:{bayId:'D1',type:'cb15'},
-       hint:'Klik kotak CB1 (teratas) pada Diameter 1.',
+       hint:'Klik kotak PMT A1 (teratas) pada Diameter 1.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D1'&&ev.which==='top'&&ev.willClose;},
-       explanation:'CB1 sebagai pemutus final. Setelah CB1 tertutup, tegangan dari Penghantar 1 mengalir ke Bus-A. Prinsip: PMS = isolator (tidak boleh berbeban), CB = pemutus (dioperasikan terakhir).'}
+       explanation:'PMT A1 sebagai pemutus final. Setelah PMT A1 tertutup, tegangan dari Penghantar 1 mengalir ke Bus-A. Prinsip: PMS = isolator (tidak boleh berbeban), PMT = pemutus (dioperasikan terakhir).'}
     ],
     completionCheck:function(){
       var d=getDiam('D1');
@@ -947,7 +948,7 @@ var SCENARIOS = [
   {
     id:'S09', simType:'breaker15', category:'Energisasi', difficulty:'Menengah',
     title:'Energisasi Diameter 3: Trafo 1 (Bus-A) & Trafo 2 (Bus-B)',
-    desc:'Masukkan kedua trafo dalam satu diameter. Trafo 1 disuplai Bus-A, Trafo 2 disuplai Bus-B, keduanya terhubung via CB tengah.',
+    desc:'Masukkan kedua trafo dalam satu diameter. Trafo 1 disuplai Bus-A, Trafo 2 disuplai Bus-B, keduanya terhubung via PMT tengah (PMT AB3).',
     estimatedTime:300,
     initState:function(){
       resetBreaker15();
@@ -955,27 +956,27 @@ var SCENARIOS = [
       var d2=getDiam('D2'); d2.pmsBotB='closed'; d2.cbBot='closed'; d2.pmsBus2='closed';
     },
     steps:[
-      {no:1,label:'Tutup PMS bawah CB1 D3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS bawah CB1 pada Diameter 3 (sisi tap Trafo 1).',
+      {no:1,label:'Tutup PMS bawah PMT A3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS bawah PMT A3 pada Diameter 3 (sisi tap Trafo 1).',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='topA'&&ev.willClose;},
-       explanation:'Mulai dari sisi Trafo 1. PMS bawah CB1 menghubungkan tap Trafo 1 ke bawah CB1.'},
+       explanation:'Mulai dari sisi Trafo 1. PMS bawah PMT A3 menghubungkan tap Trafo 1 ke bawah PMT A3.'},
       {no:2,label:'Tutup PMS Bus-A D3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS Bus-A (paling atas) Diameter 3.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus1'&&ev.willClose;},
-       explanation:'PMS Bus-A menghubungkan atas CB1 ke Bus-A yang sudah bertegangan dari Penghantar 1.'},
-      {no:3,label:'Tutup CB1 D3',highlight:{bayId:'D3',type:'cb15'},hint:'Klik CB1 (atas) Diameter 3. Kedua PMS sudah tertutup — CB aman dimasukkan.',
+       explanation:'PMS Bus-A menghubungkan atas PMT A3 ke Bus-A yang sudah bertegangan dari Penghantar 1.'},
+      {no:3,label:'Tutup PMT A3',highlight:{bayId:'D3',type:'cb15'},hint:'Klik PMT A3 (atas) Diameter 3. Kedua PMS sudah tertutup — PMT aman dimasukkan.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='top'&&ev.willClose;},
-       explanation:'CB1 sebagai pemutus final. Trafo 1 kini bertegangan dari Bus-A.'},
+       explanation:'PMT A3 sebagai pemutus final. Trafo 1 kini bertegangan dari Bus-A.'},
       {no:4,label:'Tutup PMT LV Trafo 1',highlight:{bayId:'TR-01',type:'pmtLV'},hint:'Klik PMT LV pada kartu bay Trafo 1.',
        test:function(ev){return ev.action==='pmtLV'&&ev.bayId==='TR-01'&&ev.willClose;},
        explanation:'Distribusi 20 kV Trafo 1 aktif. Selanjutnya energisasi Trafo 2 dari Bus-B.'},
-      {no:5,label:'Tutup PMS atas CB3 D3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS atas CB3 Diameter 3 (sisi tap Trafo 2).',
+      {no:5,label:'Tutup PMS atas PMT B3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS atas PMT B3 Diameter 3 (sisi tap Trafo 2).',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='botB'&&ev.willClose;},
-       explanation:'Mulai dari sisi Trafo 2. PMS atas CB3 menghubungkan tap Trafo 2 ke atas CB3.'},
+       explanation:'Mulai dari sisi Trafo 2. PMS atas PMT B3 menghubungkan tap Trafo 2 ke atas PMT B3.'},
       {no:6,label:'Tutup PMS Bus-B D3',highlight:{bayId:'D3',type:'pms15'},hint:'Klik PMS Bus-B (paling bawah) Diameter 3.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus2'&&ev.willClose;},
-       explanation:'PMS Bus-B menghubungkan bawah CB3 ke Bus-B yang sudah bertegangan dari Penghantar 2.'},
-      {no:7,label:'Tutup CB3 D3',highlight:{bayId:'D3',type:'cb15'},hint:'Klik CB3 (bawah) Diameter 3.',
+       explanation:'PMS Bus-B menghubungkan bawah PMT B3 ke Bus-B yang sudah bertegangan dari Penghantar 2.'},
+      {no:7,label:'Tutup PMT B3',highlight:{bayId:'D3',type:'cb15'},hint:'Klik PMT B3 (bawah) Diameter 3.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='bot'&&ev.willClose;},
-       explanation:'CB3 sebagai pemutus final. Trafo 2 kini bertegangan dari Bus-B.'},
+       explanation:'PMT B3 sebagai pemutus final. Trafo 2 kini bertegangan dari Bus-B.'},
       {no:8,label:'Tutup PMT LV Trafo 2',highlight:{bayId:'TR-02',type:'pmtLV'},hint:'Klik PMT LV pada kartu bay Trafo 2.',
        test:function(ev){return ev.action==='pmtLV'&&ev.bayId==='TR-02'&&ev.willClose;}}
     ],
@@ -989,17 +990,17 @@ var SCENARIOS = [
   {
     id:'S10', simType:'breaker15', category:'Pemeliharaan', difficulty:'Menengah',
     title:'Isolasi Penghantar 1 (D1) untuk Pemeliharaan',
-    desc:'Penghantar 1 beroperasi dari Bus-A. Keluarkan dari layanan — buka CB1, buka PMS, pasang pentanahan.',
+    desc:'Penghantar 1 beroperasi dari Bus-A. Keluarkan dari layanan — buka PMT A1, buka PMS, pasang pentanahan.',
     estimatedTime:180,
     initState:function(){
       resetBreaker15();
       var d=getDiam('D1'); d.pmsBus1='closed'; d.cbTop='closed'; d.pmsTopA='closed';
     },
     steps:[
-      {no:1,label:'Buka CB1 D1',highlight:{bayId:'D1',type:'cb15'},hint:'Klik CB1 (atas) Diameter 1 untuk membuka.',
+      {no:1,label:'Buka PMT A1',highlight:{bayId:'D1',type:'cb15'},hint:'Klik PMT A1 (atas) Diameter 1 untuk membuka.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D1'&&ev.which==='top'&&!ev.willClose;},
-       explanation:'CB1 dibuka untuk memutus aliran arus. PMS baru boleh dioperasikan setelah CB terbuka.'},
-      {no:2,label:'Buka PMS bawah CB1 D1',highlight:{bayId:'D1',type:'pms15'},hint:'Klik PMS bawah CB1 Diameter 1.',
+       explanation:'PMT A1 dibuka untuk memutus aliran arus. PMS baru boleh dioperasikan setelah PMT terbuka.'},
+      {no:2,label:'Buka PMS bawah PMT A1',highlight:{bayId:'D1',type:'pms15'},hint:'Klik PMS bawah PMT A1 Diameter 1.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='topA'&&!ev.willClose;}},
       {no:3,label:'Buka PMS Bus-A D1',highlight:{bayId:'D1',type:'pms15'},hint:'Klik PMS Bus-A (atas) Diameter 1.',
        test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='bus1'&&!ev.willClose;},
@@ -1014,20 +1015,20 @@ var SCENARIOS = [
   // ---- S11: Normalisasi pasca trip CB tengah D3 ----
   {
     id:'S11', simType:'breaker15', category:'Normalisasi', difficulty:'Menengah',
-    title:'Normalisasi Pasca Trip CB Tengah (CB2) Diameter 3',
-    desc:'CB2 pada Diameter 3 trip. Trafo 2 kehilangan suplai dari Bus-A. Lakukan pemeriksaan dan reklosing.',
+    title:'Normalisasi Pasca Trip PMT Tengah (PMT AB3) Diameter 3',
+    desc:'PMT AB3 pada Diameter 3 trip. Trafo 2 kehilangan suplai dari Bus-A. Lakukan pemeriksaan dan reklosing.',
     estimatedTime:180,
     initState:function(){
       resetBreaker15();
       var d=getDiam('D3');
       d.pmsBus1='closed'; d.cbTop='closed'; d.pmsTopA='closed';
-      d.pmsMidA='closed'; d.cbMid='open'; // CB2 tripped!
+      d.pmsMidA='closed'; d.cbMid='open'; // PMT AB3 tripped!
       d.pmsMidB='closed'; d.pmsBotB='closed'; d.cbBot='closed'; d.pmsBus2='closed';
       d.circuitA.pmtLV='closed'; d.circuitB.pmtLV='closed';
-      addAlarm('CB2 TRIP pada Diameter 3 — Trafo 2 kehilangan suplai Bus-A. Periksa kondisi sebelum reklosing.','danger');
+      addAlarm('PMT AB3 TRIP pada Diameter 3 — Trafo 2 kehilangan suplai Bus-A. Periksa kondisi sebelum reklosing.','danger');
     },
     steps:[
-      {no:1,label:'Acknowledge alarm CB2 D3',
+      {no:1,label:'Acknowledge alarm PMT AB3',
        highlight:{bayId:'D3',type:'alarm'},
        hint:'Klik "Acknowledge semua alarm" di bar alarm atas.',
        test:function(ev){return ev.action==='ack_alarm';},
@@ -1036,17 +1037,17 @@ var SCENARIOS = [
        highlight:{bayId:'TR-02',type:'inspect'},
        hint:'Klik tombol 🔍 Periksa Trafo 2 pada kartu bay Trafo 2.',
        test:function(ev){return ev.action==='inspect'&&ev.bayId==='TR-02';},
-       explanation:'Pemeriksaan fisik dan reset proteksi harus dilakukan sebelum reklosing CB tengah.'},
-      {no:3,label:'Tutup CB2 D3',
+       explanation:'Pemeriksaan fisik dan reset proteksi harus dilakukan sebelum reklosing PMT tengah.'},
+      {no:3,label:'Tutup PMT AB3',
        highlight:{bayId:'D3',type:'cb15'},
-       hint:'Klik kotak CB2 (tengah) pada Diameter 3.',
+       hint:'Klik kotak PMT AB3 (tengah) pada Diameter 3.',
        test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='mid'&&ev.willClose;},
-       explanation:'CB2 ditutup kembali setelah kondisi dinyatakan aman. Trafo 2 kembali mendapat suplai Bus-A.'}
+       explanation:'PMT AB3 ditutup kembali setelah kondisi dinyatakan aman. Trafo 2 kembali mendapat suplai Bus-A.'}
     ],
     completionCheck:function(){
       var d=getDiam('D3'); return d&&d.cbMid==='closed';
     },
-    successMsg:'✓ CB2 Diameter 3 berhasil direklosing. Trafo 2 kembali tersuplai dari dua sisi.'
+    successMsg:'✓ PMT AB3 Diameter 3 berhasil direklosing. Trafo 2 kembali tersuplai dari dua sisi.'
   },
   // ---- S12: Energisasi penuh sistem dari kondisi padam (multi diameter) ----
   {
@@ -1056,19 +1057,19 @@ var SCENARIOS = [
     estimatedTime:480,
     initState:function(){ resetBreaker15(); },
     steps:[
-      {no:1,label:'Tutup PMS bawah CB1 D1',highlight:{bayId:'D1',type:'pms15'},hint:'PMS bawah CB1 Diameter 1 (sisi tap Penghantar 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='topA'&&ev.willClose;}},
+      {no:1,label:'Tutup PMS bawah PMT A1',highlight:{bayId:'D1',type:'pms15'},hint:'PMS bawah PMT A1 Diameter 1 (sisi tap Penghantar 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='topA'&&ev.willClose;}},
       {no:2,label:'Tutup PMS Bus-A D1',highlight:{bayId:'D1',type:'pms15'},hint:'PMS Bus-A Diameter 1.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D1'&&ev.which==='bus1'&&ev.willClose;}},
-      {no:3,label:'Tutup CB1 D1',highlight:{bayId:'D1',type:'cb15'},hint:'CB1 Diameter 1 (kedua PMS sudah tertutup).',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D1'&&ev.which==='top'&&ev.willClose;},explanation:'Bus-A kini bertegangan dari Penghantar 1.'},
-      {no:4,label:'Tutup PMS atas CB3 D2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS atas CB3 Diameter 2 (sisi tap Penghantar 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='botB'&&ev.willClose;}},
+      {no:3,label:'Tutup PMT A1',highlight:{bayId:'D1',type:'cb15'},hint:'PMT A1 Diameter 1 (kedua PMS sudah tertutup).',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D1'&&ev.which==='top'&&ev.willClose;},explanation:'Bus-A kini bertegangan dari Penghantar 1.'},
+      {no:4,label:'Tutup PMS atas PMT B2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS atas PMT B2 Diameter 2 (sisi tap Penghantar 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='botB'&&ev.willClose;}},
       {no:5,label:'Tutup PMS Bus-B D2',highlight:{bayId:'D2',type:'pms15'},hint:'PMS Bus-B Diameter 2.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D2'&&ev.which==='bus2'&&ev.willClose;}},
-      {no:6,label:'Tutup CB3 D2',highlight:{bayId:'D2',type:'cb15'},hint:'CB3 Diameter 2.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D2'&&ev.which==='bot'&&ev.willClose;},explanation:'Bus-B kini bertegangan dari Penghantar 2.'},
-      {no:7,label:'Tutup PMS bawah CB1 D3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS bawah CB1 Diameter 3 (sisi tap Trafo 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='topA'&&ev.willClose;}},
+      {no:6,label:'Tutup PMT B2',highlight:{bayId:'D2',type:'cb15'},hint:'PMT B2 Diameter 2.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D2'&&ev.which==='bot'&&ev.willClose;},explanation:'Bus-B kini bertegangan dari Penghantar 2.'},
+      {no:7,label:'Tutup PMS bawah PMT A3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS bawah PMT A3 Diameter 3 (sisi tap Trafo 1).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='topA'&&ev.willClose;}},
       {no:8,label:'Tutup PMS Bus-A D3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS Bus-A Diameter 3.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus1'&&ev.willClose;}},
-      {no:9,label:'Tutup CB1 D3',highlight:{bayId:'D3',type:'cb15'},hint:'CB1 Diameter 3.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='top'&&ev.willClose;},explanation:'Trafo 1 bertegangan dari Bus-A.'},
+      {no:9,label:'Tutup PMT A3',highlight:{bayId:'D3',type:'cb15'},hint:'PMT A3 Diameter 3.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='top'&&ev.willClose;},explanation:'Trafo 1 bertegangan dari Bus-A.'},
       {no:10,label:'Tutup PMT LV Trafo 1',highlight:{bayId:'TR-01',type:'pmtLV'},hint:'PMT LV kartu Trafo 1.',test:function(ev){return ev.action==='pmtLV'&&ev.bayId==='TR-01'&&ev.willClose;}},
-      {no:11,label:'Tutup PMS atas CB3 D3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS atas CB3 Diameter 3 (sisi tap Trafo 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='botB'&&ev.willClose;}},
+      {no:11,label:'Tutup PMS atas PMT B3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS atas PMT B3 Diameter 3 (sisi tap Trafo 2).',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='botB'&&ev.willClose;}},
       {no:12,label:'Tutup PMS Bus-B D3',highlight:{bayId:'D3',type:'pms15'},hint:'PMS Bus-B Diameter 3.',test:function(ev){return ev.action==='pms15'&&ev.diamId==='D3'&&ev.which==='bus2'&&ev.willClose;}},
-      {no:13,label:'Tutup CB3 D3',highlight:{bayId:'D3',type:'cb15'},hint:'CB3 Diameter 3.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='bot'&&ev.willClose;},explanation:'Trafo 2 bertegangan dari Bus-B.'},
+      {no:13,label:'Tutup PMT B3',highlight:{bayId:'D3',type:'cb15'},hint:'PMT B3 Diameter 3.',test:function(ev){return ev.action==='cb15'&&ev.diamId==='D3'&&ev.which==='bot'&&ev.willClose;},explanation:'Trafo 2 bertegangan dari Bus-B.'},
       {no:14,label:'Tutup PMT LV Trafo 2',highlight:{bayId:'TR-02',type:'pmtLV'},hint:'PMT LV kartu Trafo 2.',test:function(ev){return ev.action==='pmtLV'&&ev.bayId==='TR-02'&&ev.willClose;}}
     ],
     completionCheck:function(){
@@ -1442,6 +1443,7 @@ function buildBreaker15Dom(){
   // build side cards
   var cards=diameters.map(function(d){
     var cA=d.circuitA,cB=d.circuitB;
+    var num=d.id.replace('D','');
     var lvA=cA.kind==='trafo'?'<button class="bay-btn btn-full" data-action="pmtLV" data-bay="'+cA.id+'" id="cbLVb-'+cA.id+'"></button>':'';
     var lvB=cB.kind==='trafo'?'<button class="bay-btn btn-full" data-action="pmtLV" data-bay="'+cB.id+'" id="cbLVb-'+cB.id+'"></button>':'';
     var inA=(cA.kind==='trafo'||cA.kind==='gen')?'<button class="bay-btn btn-full" data-action="inspect" data-bay="'+cA.id+'">🔍 Periksa '+cA.short+'</button>':'';
@@ -1452,13 +1454,13 @@ function buildBreaker15Dom(){
       '<span style="font-size:10px;color:var(--text-muted);font-family:monospace">'+cA.short+' ↕ '+cB.short+'</span></div>'+
       '<div style="font-size:10px;font-family:monospace;line-height:1.8;margin-bottom:6px">'+
       '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS Bus-A</span><span id="d15s-'+d.id+'-bus1">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">CB1</span><span id="d15s-'+d.id+'-top">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS bawah CB1 → '+cA.short+'</span><span id="d15s-'+d.id+'-topA">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS atas CB2</span><span id="d15s-'+d.id+'-midA">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">CB2</span><span id="d15s-'+d.id+'-mid">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS bawah CB2 → '+cB.short+'</span><span id="d15s-'+d.id+'-midB">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS atas CB3</span><span id="d15s-'+d.id+'-botB">○</span></div>'+
-      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">CB3</span><span id="d15s-'+d.id+'-bot">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMT A'+num+'</span><span id="d15s-'+d.id+'-top">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS bawah PMT A'+num+' → '+cA.short+'</span><span id="d15s-'+d.id+'-topA">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS atas PMT AB'+num+'</span><span id="d15s-'+d.id+'-midA">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMT AB'+num+'</span><span id="d15s-'+d.id+'-mid">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS bawah PMT AB'+num+' → '+cB.short+'</span><span id="d15s-'+d.id+'-midB">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS atas PMT B'+num+'</span><span id="d15s-'+d.id+'-botB">○</span></div>'+
+      '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMT B'+num+'</span><span id="d15s-'+d.id+'-bot">○</span></div>'+
       '<div style="display:flex;justify-content:space-between"><span style="color:var(--text-muted)">PMS Bus-B</span><span id="d15s-'+d.id+'-bus2">○</span></div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;font-size:10px;margin-bottom:6px">'+
@@ -1575,7 +1577,7 @@ function renderBreaker15(){
     if(d.circuitB.kind==='trafo'){tot++;if(d.circuitB.pmtLV==='closed')cl++;}
   });
   var eb=(busE[1]?1:0)+(busE[2]?1:0);
-  var txt=cl+'/'+tot+' CB masuk · '+eb+'/2 busbar bertegangan (1\u00bd Breaker)';
+  var txt=cl+'/'+tot+' PMT masuk · '+eb+'/2 busbar bertegangan (1\u00bd Breaker)';
   var st=document.getElementById('summaryTop'),sm=document.getElementById('summary');
   if(st)st.textContent=txt.toUpperCase(); if(sm)sm.textContent=txt;
   // Update trafo load panel
@@ -1596,14 +1598,22 @@ function renderBreaker15(){
 }
 
 // 1.5 Breaker interlock
+function cbLabel15(which, diamId){
+  var num = diamId.replace('D','');
+  if(which==='top') return 'PMT A'+num;
+  if(which==='mid') return 'PMT AB'+num;
+  if(which==='bot') return 'PMT B'+num;
+  return which;
+}
 function attemptTogglePms15(d,which){
+  var num=d.id.replace('D','');
   var cbMap={bus1:'cbTop',topA:'cbTop',midA:'cbMid',midB:'cbMid',botB:'cbBot',bus2:'cbBot'};
   var keyMap={bus1:'pmsBus1',topA:'pmsTopA',midA:'pmsMidA',midB:'pmsMidB',botB:'pmsBotB',bus2:'pmsBus2'};
-  var lblMap={bus1:'PMS Bus-A',topA:'PMS bawah CB1',midA:'PMS atas CB2',midB:'PMS bawah CB2',botB:'PMS atas CB3',bus2:'PMS Bus-B'};
+  var lblMap={bus1:'PMS Bus-A',topA:'PMS bawah PMT A'+num,midA:'PMS atas PMT AB'+num,midB:'PMS bawah PMT AB'+num,botB:'PMS atas PMT B'+num,bus2:'PMS Bus-B'};
   var cbKey=cbMap[which], pmsKey=keyMap[which], lbl=lblMap[which];
-  var cbNameMap={cbTop:'CB1 (atas)',cbMid:'CB2 (tengah)',cbBot:'CB3 (bawah)'};
   if(!cbKey||!pmsKey){return;}
-  if(d[cbKey]==='closed'){log(lbl+' '+d.id+' ditolak: '+(cbNameMap[cbKey]||cbKey)+' harus terbuka sebelum PMS dioperasikan.',false);return;}
+  var cbWhich={cbTop:'top',cbMid:'mid',cbBot:'bot'}[cbKey];
+  if(d[cbKey]==='closed'){log(lbl+' '+d.id+' ditolak: '+cbLabel15(cbWhich,d.id)+' harus terbuka sebelum PMS dioperasikan.',false);return;}
   pushUndo();
   var wc=d[pmsKey]==='open'; d[pmsKey]=wc?'closed':'open';
   log(lbl+' '+d.id+' '+(wc?'ditutup':'dibuka'),true,{action:'pms15',diamId:d.id,which:which,willClose:wc});
@@ -1611,7 +1621,7 @@ function attemptTogglePms15(d,which){
 }
 function attemptToggleCB15(d,which){
   var key=which==='top'?'cbTop':which==='mid'?'cbMid':'cbBot';
-  var lbl=which==='top'?'CB1 (atas)':which==='mid'?'CB2 (tengah)':'CB3 (bawah)';
+  var lbl=cbLabel15(which,d.id);
   pushUndo();
   var wc=d[key]==='open'; d[key]=wc?'closed':'open';
   log(lbl+' '+d.id+' '+(wc?'ditutup':'dibuka'),true,{action:'cb15',diamId:d.id,which:which,willClose:wc});
@@ -1620,8 +1630,7 @@ function attemptToggleCB15(d,which){
 function attemptTogglePmtLV15(c){
   var wc=c.pmtLV==='open';
   if(wc&&!c._hv){
-    var why=!computeEnergization15()||true; // recompute context
-    log('PMT LV '+c.id+' ditolak: sisi HV trafo belum bertegangan. Pastikan jalur dari busbar ke trafo (PMS + CB) sudah tertutup.',false);
+    log('PMT LV '+c.id+' ditolak: sisi HV trafo belum bertegangan. Pastikan jalur dari busbar ke trafo (PMS + PMT) sudah tertutup.',false);
     return;
   }
   pushUndo();
@@ -1880,12 +1889,12 @@ var Exam = {
     if(ev.action==='ack_alarm') return 'Acknowledge alarm';
     if(ev.action==='inspect') return 'Pemeriksaan kondisi '+(name||ev.bayId);
     if(ev.action==='pms15'){
-      var lblP={bus1:'PMS Bus-A',topA:'PMS bawah CB1',midA:'PMS atas CB2',midB:'PMS bawah CB2',botB:'PMS atas CB3',bus2:'PMS Bus-B'};
+      var num=ev.diamId.replace('D','');
+      var lblP={bus1:'PMS Bus-A',topA:'PMS bawah PMT A'+num,midA:'PMS atas PMT AB'+num,midB:'PMS bawah PMT AB'+num,botB:'PMS atas PMT B'+num,bus2:'PMS Bus-B'};
       return (ev.willClose?'Tutup':'Buka')+' '+(lblP[ev.which]||ev.which)+' Diameter '+ev.diamId;
     }
     if(ev.action==='cb15'){
-      var lblC={top:'CB1 (atas)',mid:'CB2 (tengah)',bot:'CB3 (bawah)'};
-      return (ev.willClose?'Tutup':'Buka')+' '+(lblC[ev.which]||ev.which)+' Diameter '+ev.diamId;
+      return (ev.willClose?'Tutup':'Buka')+' '+cbLabel15(ev.which,ev.diamId)+' Diameter '+ev.diamId;
     }
     return ev.action+' '+(ev.bayId||ev.diamId||'');
   },
@@ -2020,7 +2029,7 @@ function triggerFault(id, type, reason){
     var d=getDiam(id);
     if(d){
       if(type==='trip'){ d.cbTop='open'; d.cbMid='open'; addAlarm('TRIP pada '+id+' — '+(reason||'Gangguan'),'danger'); }
-      else if(type==='cbmid'){ d.cbMid='open'; addAlarm('CB2 TRIP '+id+' — '+(reason||'Gangguan'),'danger'); }
+      else if(type==='cbmid'){ d.cbMid='open'; addAlarm(cbLabel15('mid',id)+' TRIP '+id+' — '+(reason||'Gangguan'),'danger'); }
       renderBreaker15();
     }
   } else {
@@ -2040,9 +2049,9 @@ function triggerFaultModal(){
   var opts;
   if(simType==='breaker15'){
     opts=[
-      {label:'Trip CB2 Diameter 3 (CB tengah Trafo)', action:function(){var d=getDiam('D3');if(d){d.cbMid='open';addAlarm('CB2 TRIP D3 — Trafo 2 terputus dari Bus-A.','danger');renderBreaker15();}log('CB2 D3 trip.',false);}},
-      {label:'Trip CB1 Diameter 1 (Penghantar 1)', action:function(){var d=getDiam('D1');if(d){d.cbTop='open';addAlarm('CB1 TRIP D1 — Penghantar 1 terputus dari Bus-A.','danger');renderBreaker15();}log('CB1 D1 trip.',false);}},
-      {label:'Trip CB3 Diameter 2 (Penghantar 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('CB3 TRIP D2 — Penghantar 2 terputus dari Bus-B.','danger');renderBreaker15();}log('CB3 D2 trip.',false);}},
+      {label:'Trip PMT AB3 Diameter 3 (PMT tengah Trafo)', action:function(){var d=getDiam('D3');if(d){d.cbMid='open';addAlarm('PMT AB3 TRIP D3 — Trafo 2 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT AB3 D3 trip.',false);}},
+      {label:'Trip PMT A1 Diameter 1 (Penghantar 1)', action:function(){var d=getDiam('D1');if(d){d.cbTop='open';addAlarm('PMT A1 TRIP D1 — Penghantar 1 terputus dari Bus-A.','danger');renderBreaker15();}log('PMT A1 D1 trip.',false);}},
+      {label:'Trip PMT B2 Diameter 2 (Penghantar 2)', action:function(){var d=getDiam('D2');if(d){d.cbBot='open';addAlarm('PMT B2 TRIP D2 — Penghantar 2 terputus dari Bus-B.','danger');renderBreaker15();}log('PMT B2 D2 trip.',false);}},
       {label:'Reset semua fault', action:function(){diameters.forEach(function(d){d.circuitA.fault=null;d.circuitB.fault=null;});renderBreaker15();log('Semua fault direset.',true);}}
     ];
   } else {
@@ -2085,7 +2094,8 @@ function checkSystemStatus(){
     lines.push('<div class="result-row"><span>Bus-A</span><span style="color:'+(busE[1]?hvOn:'#484f58')+'">'+(busE[1]?'BERTEGANGAN 150 kV':'TIDAK BERTEGANGAN')+'</span></div>');
     lines.push('<div class="result-row"><span>Bus-B</span><span style="color:'+(busE[2]?hvOn:'#484f58')+'">'+(busE[2]?'BERTEGANGAN 150 kV':'TIDAK BERTEGANGAN')+'</span></div>');
     diameters.forEach(function(d){
-      var cbs=['CB1='+(d.cbTop==='closed'?'✓':'○'),'CB2='+(d.cbMid==='closed'?'✓':'○'),'CB3='+(d.cbBot==='closed'?'✓':'○')];
+      var num=d.id.replace('D','');
+      var cbs=['PMT A'+num+'='+(d.cbTop==='closed'?'✓':'○'),'PMT AB'+num+'='+(d.cbMid==='closed'?'✓':'○'),'PMT B'+num+'='+(d.cbBot==='closed'?'✓':'○')];
       var hv=d.circuitA._hv||d.circuitB._hv;
       lines.push('<div class="result-row"><span>'+d.id+' ('+d.circuitA.short+'/'+d.circuitB.short+')</span><span style="color:'+(hv?greenC:'#484f58')+'">'+cbs.join(' · ')+'</span></div>');
       if(d.circuitA.kind==='trafo') lines.push('<div class="result-row" style="padding-left:16px"><span>PMT LV '+d.circuitA.short+'</span><span style="color:'+(d.circuitA.pmtLV==='closed'?greenC:'#484f58')+'">'+(d.circuitA.pmtLV==='closed'?'MASUK':'KELUAR')+'</span></div>');
@@ -2295,7 +2305,7 @@ function showFaultDrill(){
     buildBreaker15Dom(); renderBreaker15();
     setTimeout(function(){
       var d=getDiam('D3'); d.cbMid='open';
-      addAlarm('CB2 TRIP Diameter 3 — sirkit Trafo 2 terputus dari Bus-A.','danger');
+      addAlarm('PMT AB3 TRIP Diameter 3 — sirkit Trafo 2 terputus dari Bus-A.','danger');
       renderBreaker15();
     },2000);
   } else {
